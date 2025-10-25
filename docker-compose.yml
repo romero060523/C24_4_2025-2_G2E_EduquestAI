@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Admin Backend (Django)
+  admin-backend:
+    build:
+      context: ./admin/backend
+      dockerfile: Dockerfile
+    container_name: eduquest-admin-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./admin/backend:/app
+    networks:
+      - eduquest-network
+    restart: unless-stopped
+
+  # Admin Frontend (React + Vite + Tailwind)
+  admin-frontend:
+    build:
+      context: ./admin/frontend/my-project
+      dockerfile: Dockerfile
+    container_name: eduquest-admin-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - admin-backend
+    networks:
+      - eduquest-network
+    restart: unless-stopped
+
+  # Client Backend (Spring Boot)
+  client-backend:
+    build:
+      context: ./client/backend
+      dockerfile: Dockerfile
+    container_name: eduquest-client-backend
+    ports:
+      - "8080:8080"
+    networks:
+      - eduquest-network
+    restart: unless-stopped
+
+  # Client Frontend Web (React + Vite + Tailwind)
+  client-frontend-web:
+    build:
+      context: ./client/frontend-web/my-project
+      dockerfile: Dockerfile
+    container_name: eduquest-client-frontend-web
+    ports:
+      - "3001:80"
+    depends_on:
+      - client-backend
+    networks:
+      - eduquest-network
+    restart: unless-stopped
+
+networks:
+  eduquest-network:
+    driver: bridge

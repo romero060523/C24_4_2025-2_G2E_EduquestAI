@@ -7,9 +7,9 @@ from django.utils import timezone
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'role', 'full_name', 
-                  'avatar_url', 'created_at', 'updated_at', 'active', 'last_access']
-        read_only_fields = ('id', 'created_at', 'updated_at', 'last_access')
+        fields = ['id', 'username', 'email', 'password', 'rol', 'nombre_completo', 
+                  'avatar_url', 'fecha_creacion', 'fecha_actualizacion', 'activo', 'ultimo_acceso']
+        read_only_fields = ('id', 'fecha_creacion', 'fecha_actualizacion', 'ultimo_acceso')
         extra_kwargs = {
             'password': {
                 'write_only': True,
@@ -41,8 +41,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Agregar campos personalizados al token
         token['email'] = user.email
         token['username'] = user.username
-        token['full_name'] = user.full_name
-        token['role'] = user.role
+        token['nombre_completo'] = user.nombre_completo
+        token['rol'] = user.rol
         return token
     
     def validate(self, attrs):
@@ -54,7 +54,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         
         # Actualizar último acceso
         user = self.user
-        user.last_access = timezone.now()
-        user.save(update_fields=['last_access'])
+        user.ultimo_acceso = timezone.now()
+        user.save(update_fields=['ultimo_acceso'])
         
         return data

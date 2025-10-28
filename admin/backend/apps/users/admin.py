@@ -6,23 +6,23 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ('email', 'username', 'full_name', 'role', 'active', 'created_at')
-    list_filter = ('role', 'active', 'created_at')
-    search_fields = ('email', 'username', 'full_name')
-    ordering = ('-created_at',)
+    list_display = ('email', 'username', 'nombre_completo', 'rol', 'activo', 'fecha_creacion')
+    list_filter = ('rol', 'activo', 'fecha_creacion')
+    search_fields = ('email', 'username', 'nombre_completo')
+    ordering = ('-fecha_creacion',)
     
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Información Personal', {'fields': ('username', 'full_name', 'avatar_url')}),
-        ('Permisos', {'fields': ('role', 'active', 'is_staff', 'is_superuser')}),
-        ('Fechas', {'fields': ('last_access', 'created_at', 'updated_at')}),
+        ('Información Personal', {'fields': ('username', 'nombre_completo', 'avatar_url')}),
+        ('Permisos', {'fields': ('rol', 'activo', 'is_staff', 'is_superuser')}),
+        ('Fechas', {'fields': ('ultimo_acceso', 'fecha_creacion', 'fecha_actualizacion')}),
     )
     
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'username', 'full_name', 'password1', 'password2', 'role'),
+            'fields': ('email', 'username', 'nombre_completo', 'password1', 'password2', 'rol'),
         }),
     )
     
-    readonly_fields = ('created_at', 'updated_at', 'last_access')
+    readonly_fields = ('fecha_creacion', 'fecha_actualizacion', 'ultimo_acceso')

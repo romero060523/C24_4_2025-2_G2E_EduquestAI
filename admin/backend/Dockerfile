@@ -20,8 +20,11 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
-# Copiar el proyecto
+# Copiar el proyecto (excluyendo .env para usar variables de docker-compose)
 COPY . .
+
+# Remover .env si existe (usaremos variables de entorno de Docker)
+RUN rm -f .env
 
 # Crear __init__.py en apps si no existe
 RUN touch /app/apps/__init__.py

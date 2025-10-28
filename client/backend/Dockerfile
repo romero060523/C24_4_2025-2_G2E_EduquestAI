@@ -39,8 +39,12 @@ EXPOSE 8080
 # Variables de entorno opcionales
 ENV JAVA_OPTS="-Xms256m -Xmx512m"
 
-# Deshabilitar JPA si no hay base de datos configurada
-ENV SPRING_AUTOCONFIGURE_EXCLUDE=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+# Variables de entorno para la base de datos
+ENV DB_URL=jdbc:postgresql://postgres:5432/eduquest_db
+ENV DB_USER=postgres
+ENV DB_PASSWORD=60781212
+ENV DB_SCHEMA=grupo_03
+ENV JPA_DDL_AUTO=update
 
 # Ejecutar la aplicación
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

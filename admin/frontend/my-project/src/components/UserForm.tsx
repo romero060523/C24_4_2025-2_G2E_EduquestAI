@@ -18,10 +18,10 @@ export default function UserForm({ open, mode, initial, onClose, onSaved }: User
 	const [form, setForm] = useState<UserPayload>({
 		username: "",
 		email: "",
-		role: "profesor",
-		full_name: "",
+		rol: "profesor",
+		nombre_completo: "",
 		avatar_url: null,
-		active: true,
+		activo: true,
 		password: "",
 	});
 	const [loading, setLoading] = useState(false);
@@ -32,19 +32,19 @@ export default function UserForm({ open, mode, initial, onClose, onSaved }: User
 			setForm({
 				username: initial.username,
 				email: initial.email,
-				role: initial.role,
-				full_name: initial.full_name,
+				rol: initial.rol,
+				nombre_completo: initial.nombre_completo,
 				avatar_url: initial.avatar_url,
-				active: initial.active,
+				activo: initial.activo,
 			});
 		} else {
 			setForm({ 
 				username: "", 
 				email: "", 
-				role: "profesor", 
-				full_name: "",
+				rol: "profesor", 
+				nombre_completo: "",
 				avatar_url: null,
-				active: true, 
+				activo: true, 
 				password: "" 
 			});
 		}
@@ -115,8 +115,8 @@ export default function UserForm({ open, mode, initial, onClose, onSaved }: User
 					<div>
 						<label className="mb-1 block text-sm font-medium text-gray-700">Nombre completo</label>
 						<input
-							name="full_name"
-							value={form.full_name}
+							name="nombre_completo"
+							value={form.nombre_completo}
 							onChange={handleChange}
 							className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
 							required
@@ -147,8 +147,8 @@ export default function UserForm({ open, mode, initial, onClose, onSaved }: User
 						<div>
 							<label className="mb-1 block text-sm font-medium text-gray-700">Rol</label>
 							<select
-								name="role"
-								value={form.role}
+								name="rol"
+								value={form.rol}
 								onChange={handleChange}
 								className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
 								required
@@ -161,7 +161,7 @@ export default function UserForm({ open, mode, initial, onClose, onSaved }: User
 							</select>
 						</div>
 						<div className="flex items-center gap-2 pt-6">
-							<input type="checkbox" name="active" checked={form.active} onChange={handleChange} />
+							<input type="checkbox" name="activo" checked={form.activo} onChange={handleChange} />
 							<label className="text-sm text-gray-700">Activo</label>
 						</div>
 					</div>

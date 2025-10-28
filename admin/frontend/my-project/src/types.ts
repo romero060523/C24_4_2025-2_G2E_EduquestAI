@@ -4,21 +4,21 @@ export interface User {
   id: string; // UUID
   username: string;
   email: string;
-  role: UserRole;
-  full_name: string;
+  rol: UserRole;
+  nombre_completo: string;
   avatar_url: string | null;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-  last_access: string | null;
+  activo: boolean;
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+  ultimo_acceso: string | null;
 }
 
 export interface UserPayload {
   username: string;
   email: string;
-  role: UserRole;
-  full_name: string;
+  rol: UserRole;
+  nombre_completo: string;
   avatar_url?: string | null;
-  active: boolean;
+  activo: boolean;
   password?: string; // requerido en create, opcional en edit
 }

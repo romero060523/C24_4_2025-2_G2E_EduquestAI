@@ -45,7 +45,7 @@ export default function UserTable() {
   };
 
   const onDelete = async (u: User) => {
-    if (!confirm(`¿Eliminar usuario ${u.full_name}?`)) return;
+    if (!confirm(`¿Eliminar usuario ${u.nombre_completo}?`)) return;
     try {
       await API.delete(`/users/${u.id}/`);
       fetchUsers();
@@ -76,17 +76,17 @@ export default function UserTable() {
     return users.filter(user => {
       // Filtro de búsqueda por nombre o email
       const matchesSearch = searchQuery === "" || 
-        user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
       // Filtro por rol
-      const matchesRole = filterRole === "all" || user.role === filterRole;
+      const matchesRole = filterRole === "all" || user.rol === filterRole;
 
       // Filtro por estado
       const matchesStatus = filterStatus === "all" || 
-        (filterStatus === "active" && user.active) ||
-        (filterStatus === "inactive" && !user.active);
+        (filterStatus === "active" && user.activo) ||
+        (filterStatus === "inactive" && !user.activo);
 
       return matchesSearch && matchesRole && matchesStatus;
     });
@@ -228,8 +228,8 @@ export default function UserTable() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredUsers.map((u) => {
-                  const roleBadge = getRoleBadge(u.role);
-                  const statusBadge = getStatusBadge(u.active);
+                  const roleBadge = getRoleBadge(u.rol);
+                  const statusBadge = getStatusBadge(u.activo);
                   return (
                     <tr
                       key={u.id}
@@ -240,10 +240,10 @@ export default function UserTable() {
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
                             <span className="text-white font-bold text-sm">
-                              {u.full_name.charAt(0).toUpperCase()}
+                              {u.nombre_completo.charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <span className="font-semibold text-gray-900">{u.full_name}</span>
+                          <span className="font-semibold text-gray-900">{u.nombre_completo}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-gray-600">{u.email}</td>
@@ -258,7 +258,7 @@ export default function UserTable() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-600">
-                        {new Date(u.created_at).toLocaleDateString("es-ES", {
+                        {new Date(u.fecha_creacion).toLocaleDateString("es-ES", {
                           year: "numeric",
                           month: "short",
                           day: "numeric",

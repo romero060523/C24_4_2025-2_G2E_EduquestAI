@@ -10,3 +10,10 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA grupo_03 TO postgres;
 
 -- Configurar search_path por defecto (opcional)
 ALTER DATABASE eduquest_db SET search_path TO grupo_03, public;
+
+-- ===================================================================
+-- NOTA IMPORTANTE: 
+-- La tabla 'usuario' será creada por Django (admin-backend) 
+-- mediante migraciones cuando el servicio se inicie.
+-- Las otras tablas serán creadas manualmente o por Spring Boot.
+-- ===================================================================

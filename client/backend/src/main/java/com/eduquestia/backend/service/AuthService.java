@@ -83,30 +83,48 @@ public class AuthService {
 
     /**
      * Verifica contraseña soportando múltiples formatos:
-     * - BCrypt (Spring Boot estándar): $2a$, $2b$, $2y$
+     * - BCrypt puro (Spring Boot/Django custom): $2a$, $2b$, $2y$
+     * - Django bcrypt_pure: bcrypt_pure$$2b$12$...
      * - Django pbkdf2_sha256: pbkdf2_sha256$...
+     * - Django bcrypt_sha256: bcrypt_sha256$$2b$12$...
      */
     private boolean verifyPassword(String plainPassword, String hashedPassword) {
         if (hashedPassword == null || plainPassword == null) {
             return false;
         }
 
+        // Extraer el hash BCrypt puro si tiene prefijo de Django
+        String bcryptHash = hashedPassword;
+        
+        if (hashedPassword.startsWith("bcrypt_pure$") || hashedPassword.startsWith("bcrypt_sha256$")) {
+            // Formato Django: bcrypt_pure$$2b$12$hash o bcrypt_sha256$$2b$12$hash
+            // Extraer solo la parte BCrypt ($2b$12$hash)
+            int firstDollar = hashedPassword.indexOf('$');
+            if (firstDollar != -1 && firstDollar + 1 < hashedPassword.length()) {
+                bcryptHash = hashedPassword.substring(firstDollar + 1); // Saltar "bcrypt_pure$"
+                log.info("Hash Django detectado ({}), extrayendo BCrypt puro: {}...", 
+                    hashedPassword.substring(0, Math.min(15, hashedPassword.length())),
+                    bcryptHash.substring(0, Math.min(20, bcryptHash.length())));
+            }
+        }
+        
         // Detectar formato de hash
-        if (hashedPassword.startsWith("$2a$") || 
-            hashedPassword.startsWith("$2b$") || 
-            hashedPassword.startsWith("$2y$")) {
-            // BCrypt hash
-            return BCrypt.checkpw(plainPassword, hashedPassword);
+        if (bcryptHash.startsWith("$2a$") || 
+            bcryptHash.startsWith("$2b$") || 
+            bcryptHash.startsWith("$2y$")) {
+            // BCrypt hash puro
+            log.info("Verificando con BCrypt");
+            return BCrypt.checkpw(plainPassword, bcryptHash);
         } 
         else if (hashedPassword.startsWith("pbkdf2_sha256$")) {
-            // Django pbkdf2_sha256 hash
+            // Django pbkdf2_sha256 hash (fallback para contraseñas antiguas)
             log.info("Verificando contraseña con formato Django pbkdf2_sha256");
             return verifyDjangoPbkdf2Password(plainPassword, hashedPassword);
         }
         else {
-            // Formato desconocido o contraseña sin hashear (desarrollo)
-            log.warn("Formato de hash desconocido o contraseña sin cifrar");
-            return plainPassword.equals(hashedPassword);
+            // Formato desconocido
+            log.warn("Formato de hash desconocido: {}", hashedPassword.substring(0, Math.min(20, hashedPassword.length())));
+            return false;
         }
     }
 

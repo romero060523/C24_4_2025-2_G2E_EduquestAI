@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # PostgreSQL Database
@@ -67,8 +67,19 @@ services:
       context: ./client/backend
       dockerfile: Dockerfile
     container_name: eduquest-client-backend
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/eduquest_db?currentSchema=grupo_03
+      DB_USER: postgres
+      DB_PASSWORD: 60781212
+      # NOTA: Spring Boot NO gestiona el schema de 'usuario', solo lo lee
+      # Django (admin-backend) es responsable de crear y gestionar la tabla 'usuario'
+      # update: crea/actualiza tablas de Spring Boot que referencian a 'usuario'
+      JPA_DDL_AUTO: update
     ports:
       - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - eduquest-network
     restart: unless-stopped
@@ -94,4 +105,3 @@ networks:
 volumes:
   postgres_data:
     driver: local
-

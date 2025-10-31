@@ -103,6 +103,14 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
+# Configuración de hashers de contraseña
+# Hasher personalizado para compatibilidad total con Spring Boot
+PASSWORD_HASHERS = [
+    'apps.users.hashers.SpringBootBCryptPasswordHasher',  # BCrypt puro compatible con Spring Boot
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',  # Fallback para contraseñas antiguas
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',  # Fallback para contraseñas muy antiguas
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',

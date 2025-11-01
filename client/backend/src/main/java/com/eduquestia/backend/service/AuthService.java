@@ -38,9 +38,10 @@ public class AuthService {
             throw new AuthenticationException("Usuario inactivo");
         }
 
-        // Verificar que sea un profesor
-        if (!"profesor".equalsIgnoreCase(usuario.getRol())) {
-            throw new AuthenticationException("Acceso denegado. Solo profesores pueden acceder.");
+        // Verificar que sea un profesor o estudiante
+        if (!"profesor".equalsIgnoreCase(usuario.getRol()) && 
+            !"estudiante".equalsIgnoreCase(usuario.getRol())) {
+            throw new AuthenticationException("Acceso denegado. Solo profesores y estudiantes pueden acceder.");
         }
 
         // Verificar contraseña - soporta tanto BCrypt como Django pbkdf2_sha256
@@ -49,7 +50,7 @@ public class AuthService {
             throw new AuthenticationException("Credenciales inválidas");
         }
 
-        log.info("Login exitoso para profesor: {}", usuario.getEmail());
+        log.info("Login exitoso para usuario: {} (rol: {})", usuario.getEmail(), usuario.getRol());
 
         // Actualizar último acceso
         usuario.setUltimoAcceso(OffsetDateTime.now());

@@ -1,4 +1,3 @@
-// src/components/profesor/SidebarProfesor.tsx
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import {
@@ -11,7 +10,7 @@ import {
   LogOut,
 } from "lucide-react";
 
-const SidebarProfesor = () => {
+const SidebarEstudiante = () => {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -28,36 +27,32 @@ const SidebarProfesor = () => {
       .toUpperCase()
       .substring(0, 2);
   };
-
   return (
     <aside className="bg-white border-r border-gray-200 w-64 min-h-screen flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center text-white">
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
             🎓
           </div>
           <span className="text-xl font-bold text-gray-800">EduQuest</span>
-          <span className="ml-auto bg-green-50 text-green-600 px-2 py-1 text-xs font-medium rounded">
-            Profesor
+          <span className="ml-auto bg-green-50 text-blue-600 px-2 py-1 text-xs font-medium rounded">
+            Estudiante
           </span>
         </div>
       </div>
-
       {/* Profile Section */}
       <div className="p-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
               {usuario ? getInitials(usuario.nombre) : "MG"}
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-900 text-sm truncate">
                 {usuario ? usuario.nombre : "Prof. María González"}
               </div>
-              <div className="text-xs text-gray-500 mt-0.5">
-                4 cursos, 125 estudiantes
-              </div>
+              <div className="text-xs text-gray-500 mt-0.5">4 cursos</div>
             </div>
           </div>
         </div>
@@ -70,7 +65,7 @@ const SidebarProfesor = () => {
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
               isActive
-                ? "bg-green-50 text-green-700"
+                ? "bg-green-50 text-blue-700"
                 : "text-gray-600 hover:bg-gray-50"
             }`
           }
@@ -84,7 +79,7 @@ const SidebarProfesor = () => {
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
               isActive
-                ? "bg-green-50 text-green-700"
+                ? "bg-green-50 text-blue-700"
                 : "text-gray-600 hover:bg-gray-50"
             }`
           }
@@ -98,7 +93,7 @@ const SidebarProfesor = () => {
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
               isActive
-                ? "bg-green-50 text-green-700"
+                ? "bg-green-50 text-blue-700"
                 : "text-gray-600 hover:bg-gray-50"
             }`
           }
@@ -108,45 +103,45 @@ const SidebarProfesor = () => {
         </NavLink>
 
         <NavLink
-          to="estudiantes"
+          to="recompensas"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
               isActive
-                ? "bg-green-50 text-green-700"
+                ? "bg-green-50 text-blue-700"
                 : "text-gray-600 hover:bg-gray-50"
             }`
           }
         >
           <Users size={20} />
-          <span>Estudiantes</span>
+          <span>Recompensas</span>
         </NavLink>
 
         <NavLink
-          to="reportes"
+          to="ranking"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
               isActive
-                ? "bg-green-50 text-green-700"
+                ? "bg-green-50 text-blue-700"
                 : "text-gray-600 hover:bg-gray-50"
             }`
           }
         >
           <BarChart3 size={20} />
-          <span>Reportes</span>
+          <span>Ranking</span>
         </NavLink>
 
         <NavLink
-          to="recursos"
+          to="perfil"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
               isActive
-                ? "bg-green-50 text-green-700"
+                ? "bg-green-50 text-blue-700"
                 : "text-gray-600 hover:bg-gray-50"
             }`
           }
         >
           <Sparkles size={20} />
-          <span>Recursos IA</span>
+          <span>Perfil</span>
         </NavLink>
       </nav>
 
@@ -164,4 +159,4 @@ const SidebarProfesor = () => {
   );
 };
 
-export default SidebarProfesor;
+export default SidebarEstudiante;

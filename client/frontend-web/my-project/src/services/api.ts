@@ -1,17 +1,18 @@
-import axios from 'axios';
-import type { AxiosInstance, AxiosError } from 'axios';
-import type { 
-  Mision, 
-  MisionListResponse, 
-  CrearMisionDTO, 
-  ActualizarMisionDTO, 
+import axios from "axios";
+import type { AxiosInstance, AxiosError } from "axios";
+import type {
+  Mision,
+  MisionListResponse,
+  CrearMisionDTO,
+  ActualizarMisionDTO,
   ApiError,
   LoginResponse,
-  Curso
-} from '../types';
+  Curso,
+} from "../types";
 
 // Configuración base de axios
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
 
 class ApiService {
   private api: AxiosInstance;
@@ -20,7 +21,7 @@ class ApiService {
     this.api = axios.create({
       baseURL: API_BASE_URL,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       timeout: 10000,
     });
@@ -28,12 +29,12 @@ class ApiService {
     this.api.interceptors.request.use(
       (config) => {
         // Header temporal de profesor
-        const profesorId = localStorage.getItem('profesorId');
+        const profesorId = localStorage.getItem("profesorId");
         if (profesorId) {
-          config.headers['X-Profesor-Id'] = profesorId;
+          config.headers["X-Profesor-Id"] = profesorId;
         }
         // JWT auth si la tienes
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem("access_token");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -47,14 +48,14 @@ class ApiService {
       (error: AxiosError<ApiError>) => {
         if (error.response) {
           const apiError: ApiError = {
-            message: error.response.data?.message || 'Error en la solicitud',
+            message: error.response.data?.message || "Error en la solicitud",
             status: error.response.status,
             errors: error.response.data?.errors,
           };
           return Promise.reject(apiError);
         }
         return Promise.reject({
-          message: 'Error de conexión con el servidor',
+          message: "Error de conexión con el servidor",
           status: 0,
         } as ApiError);
       }
@@ -64,10 +65,23 @@ class ApiService {
   // ==================== AUTENTICACIÓN ====================
 
   async loginProfesor(email: string, password: string): Promise<LoginResponse> {
-    const response = await this.api.post<{ success: boolean; data: LoginResponse; message: string }>(
-      '/auth/login',
-      { email, password }
-    );
+    const response = await this.api.post<{
+      success: boolean;
+      data: LoginResponse;
+      message: string;
+    }>("/auth/login", { email, password });
+    return response.data.data;
+  }
+
+  async loginEstudiante(
+    email: string,
+    password: string
+  ): Promise<LoginResponse> {
+    const response = await this.api.post<{
+      success: boolean;
+      data: LoginResponse;
+      message: string;
+    }>("/auth/login", { email, password });
     return response.data.data;
   }
 
@@ -75,7 +89,7 @@ class ApiService {
 
   async crearMision(mision: CrearMisionDTO): Promise<Mision> {
     // El controlador espera /misiones
-    const response = await this.api.post('/misiones', mision);
+    const response = await this.api.post("/misiones", mision);
     return response.data?.data || response.data;
   }
 
@@ -117,7 +131,10 @@ class ApiService {
     return Array.isArray(data) ? data : [];
   }
 
-  async actualizarMision(id: string, mision: ActualizarMisionDTO): Promise<Mision> {
+  async actualizarMision(
+    id: string,
+    mision: ActualizarMisionDTO
+  ): Promise<Mision> {
     const response = await this.api.put(`/misiones/${id}`, mision);
     return response.data?.data || response.data;
   }

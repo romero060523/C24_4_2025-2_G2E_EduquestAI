@@ -1,13 +1,28 @@
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
+import { useEffect } from "react";
+import AdminLayout from "./layout/AdminLayout";
+import Dashboard from "./pages/Dashboard";
+import Users from "./pages/Users";
+import LoginPage from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-function App() {
+export default function App() {
+  // Limpiar token en cada refresh/carga de la aplicación
+  useEffect(() => {
+    localStorage.removeItem("access");
+  }, []);
+
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-900">
-      <h1 className="text-4xl font-bold text-blue-400">
-        React + Vite + TailwindCSS Setup Successful!
-      </h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/admin/login" />} />
+        <Route path="/admin/login" element={<LoginPage />} />
+        <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+          <Route index element={<Navigate to="/admin/dashboard" />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="users" element={<Users />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App

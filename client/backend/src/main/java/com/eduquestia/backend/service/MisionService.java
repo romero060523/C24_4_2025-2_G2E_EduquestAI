@@ -1,7 +1,9 @@
 package com.eduquestia.backend.service;
 
+import com.eduquestia.backend.dto.request.CompletarMisionRequest;
 import com.eduquestia.backend.dto.request.MisionCreateRequest;
 import com.eduquestia.backend.dto.request.MisionUpdateRequest;
+import com.eduquestia.backend.dto.response.MisionEstudianteResponse;
 import com.eduquestia.backend.dto.response.MisionListResponse;
 import com.eduquestia.backend.dto.response.MisionProgresoResponse;
 import com.eduquestia.backend.dto.response.MisionResponse;
@@ -29,5 +31,12 @@ public interface MisionService {
     MisionProgresoResponse obtenerProgresoMision(UUID misionId, UUID profesorId);
 
     void asignarMisionAEstudiantes(UUID misionId, List<UUID> estudiantesIds, UUID profesorId);
+
+    // Métodos para estudiantes
+    List<MisionEstudianteResponse> listarMisionesPorEstudiante(UUID estudianteId);
+
+    MisionEstudianteResponse completarMision(UUID misionId, CompletarMisionRequest request, UUID estudianteId);
+    
+    Integer obtenerPuntosTotalesEstudiante(UUID estudianteId);
 }
 

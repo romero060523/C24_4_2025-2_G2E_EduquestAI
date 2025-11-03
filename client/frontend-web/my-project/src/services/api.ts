@@ -3,6 +3,8 @@ import type { AxiosInstance, AxiosError } from "axios";
 import type {
   Mision,
   MisionListResponse,
+  MisionEstudianteResponse,
+  CompletarMisionRequest,
   CrearMisionDTO,
   ActualizarMisionDTO,
   ApiError,
@@ -33,8 +35,13 @@ class ApiService {
         if (profesorId) {
           config.headers["X-Profesor-Id"] = profesorId;
         }
+        // Header temporal de estudiante
+        const estudianteId = localStorage.getItem("estudianteId") || localStorage.getItem("userId");
+        if (estudianteId) {
+          config.headers["X-Estudiante-Id"] = estudianteId;
+        }
         // JWT auth si la tienes
-        const token = localStorage.getItem("access_token");
+        const token = localStorage.getItem("access_token") || localStorage.getItem("accessToken");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -146,9 +153,115 @@ class ApiService {
   // ==================== CURSOS ====================
 
   async listarCursosPorProfesor(profesorId: string): Promise<Curso[]> {
-    const response = await this.api.get(`/cursos/profesor/${profesorId}`);
+    try {
+      console.log('🔍 API: Solicitando cursos para profesorId:', profesorId);
+      const response = await this.api.get(`/cursos/profesor/${profesorId}`);
+      console.log('📥 API: Respuesta completa del backend:', response.data);
+      // El backend devuelve: { success: true, data: [...], message: "..." }
+      const data = response.data?.data || response.data;
+      console.log('📦 API: Datos extraídos:', data);
+      const cursos = Array.isArray(data) ? data : [];
+      console.log('✅ API: Cursos procesados:', cursos);
+      return cursos;
+    } catch (error) {
+      console.error('❌ API: Error en listarCursosPorProfesor:', error);
+      throw error;
+    }
+  }
+
+  async crearCurso(curso: {
+    codigoCurso: string;
+    nombre: string;
+    descripcion?: string;
+    imagenPortada?: string;
+    fechaInicio?: string;
+    fechaFin?: string;
+  }): Promise<Curso> {
+    const response = await this.api.post(`/cursos`, curso);
+    return response.data?.data || response.data;
+  }
+
+  async listarCursosPorEstudiante(estudianteId: string): Promise<Curso[]> {
+    try {
+      console.log('🔍 API: Solicitando cursos para estudianteId:', estudianteId);
+      const response = await this.api.get(`/cursos/por-estudiante/${estudianteId}`);
+      const data = response.data?.data || response.data;
+      const cursos = Array.isArray(data) ? data : [];
+      console.log('✅ API: Cursos del estudiante:', cursos);
+      return cursos;
+    } catch (error) {
+      console.error('❌ API: Error en listarCursosPorEstudiante:', error);
+      throw error;
+    }
+  }
+
+  // ==================== MISIONES ESTUDIANTE ====================
+
+  async listarMisionesPorEstudiante(estudianteId: string): Promise<MisionEstudianteResponse[]> {
+    const response = await this.api.get(`/misiones/estudiante/${estudianteId}`);
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : [];
+  }
+
+  async completarMision(
+    misionId: string,
+    request: CompletarMisionRequest
+  ): Promise<MisionEstudianteResponse> {
+    const response = await this.api.post(`/misiones/${misionId}/completar`, request);
+    return response.data?.data || response.data;
+  }
+
+  async obtenerPuntosTotalesEstudiante(estudianteId: string): Promise<number> {
+    const response = await this.api.get(`/misiones/estudiante/${estudianteId}/puntos`);
+    return response.data?.data || 0;
+  }
+
+  // ==================== GAMIFICACIÓN ====================
+
+  async obtenerPerfilGamificado(estudianteId: string) {
+    const response = await this.api.get(`/gamificacion/estudiante/${estudianteId}/perfil`);
+    return response.data?.data || response.data;
+  }
+
+  async obtenerRankingPorCurso(cursoId: string) {
+    const response = await this.api.get(`/gamificacion/ranking/curso/${cursoId}`);
+    return response.data?.data || response.data;
+  }
+
+  async obtenerRankingGlobal() {
+    const response = await this.api.get(`/gamificacion/ranking/global`);
+    return response.data?.data || response.data;
+  }
+
+  // ==================== CURSOS - ASIGNAR ESTUDIANTES ====================
+
+  async asignarEstudiantesACurso(cursoId: string, estudiantesIds: string[]): Promise<{
+    asignados: number;
+    yaInscritos: number;
+    totalProcesados: number;
+  }> {
+    const response = await this.api.post(`/cursos/${cursoId}/asignar-estudiantes`, {
+      estudiantesIds,
+    });
+    return response.data?.data || response.data;
+  }
+
+  async obtenerEstudiantesPorCurso(cursoId: string) {
+    const response = await this.api.get(`/cursos/${cursoId}/estudiantes`);
+    return response.data?.data || response.data;
+  }
+
+  async listarTodosLosEstudiantes() {
+    const response = await this.api.get(`/usuarios/estudiantes`);
+    return response.data?.data || response.data;
+  }
+
+  async obtenerEstadisticasProfesor(profesorId: string): Promise<{
+    totalCursos: number;
+    totalEstudiantes: number;
+  }> {
+    const response = await this.api.get(`/cursos/profesor/${profesorId}/estadisticas`);
+    return response.data?.data || { totalCursos: 0, totalEstudiantes: 0 };
   }
 }
 

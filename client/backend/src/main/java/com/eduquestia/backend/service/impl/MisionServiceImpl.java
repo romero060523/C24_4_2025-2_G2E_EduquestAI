@@ -1,5 +1,6 @@
 package com.eduquestia.backend.service.impl;
 
+import com.eduquestia.backend.dto.request.CompletarMisionRequest;
 import com.eduquestia.backend.dto.request.ContenidoRequest;
 import com.eduquestia.backend.dto.request.CriterioRequest;
 import com.eduquestia.backend.dto.request.MisionCreateRequest;
@@ -12,6 +13,7 @@ import com.eduquestia.backend.exceptions.ResourceNotFoundException;
 import com.eduquestia.backend.exceptions.UnauthorizedException;
 import com.eduquestia.backend.exceptions.ValidationException;
 import com.eduquestia.backend.repository.*;
+import com.eduquestia.backend.service.GamificacionService;
 import com.eduquestia.backend.service.MisionService;
 import com.eduquestia.backend.service.NotificacionService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class MisionServiceImpl implements MisionService {
 
     private final MisionRepository misionRepository;
@@ -39,6 +42,7 @@ public class MisionServiceImpl implements MisionService {
     private final ProgresoMisionRepository progresoRepository;
     private final EntregaMisionRepository entregaRepository;
     private final NotificacionService notificacionService;
+    private final GamificacionService gamificacionService;
 
     @Override
     public MisionResponse crearMision(MisionCreateRequest request, UUID profesorId) {
@@ -46,11 +50,12 @@ public class MisionServiceImpl implements MisionService {
 
         // Validar profesor
         Usuario profesor = usuarioRepository.findById(profesorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Profesor no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Profesor no encontrado con ID: " + profesorId));
 
         // Validar curso
-        Curso curso = cursoRepository.findById(request.getCursoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado"));
+        UUID cursoId = request.getCursoId();
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado con ID: " + cursoId));
 
         // Validar fechas
         validarFechas(request.getFechaInicio(), request.getFechaLimite());
@@ -101,7 +106,7 @@ public class MisionServiceImpl implements MisionService {
         log.info("Obteniendo misión con ID: {}", misionId);
 
         Mision mision = misionRepository.findById(misionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada con ID: " + misionId));
 
         return convertirAMisionResponse(mision);
     }
@@ -149,7 +154,7 @@ public class MisionServiceImpl implements MisionService {
         log.info("Actualizando misión: {}", misionId);
 
         Mision mision = misionRepository.findById(misionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada con ID: " + misionId));
 
         // Verificar que el profesor sea el dueño de la misión
         if (!mision.getProfesor().getId().equals(profesorId)) {
@@ -218,7 +223,7 @@ public class MisionServiceImpl implements MisionService {
         log.info("Eliminando misión: {}", misionId);
 
         Mision mision = misionRepository.findById(misionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada con ID: " + misionId));
 
         // Verificar que el profesor sea el dueño
         if (!mision.getProfesor().getId().equals(profesorId)) {
@@ -249,7 +254,7 @@ public class MisionServiceImpl implements MisionService {
         log.info("Obteniendo progreso de misión: {}", misionId);
 
         Mision mision = misionRepository.findById(misionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada con ID: " + misionId));
 
         // Verificar que el profesor sea el dueño
         if (!mision.getProfesor().getId().equals(profesorId)) {
@@ -297,7 +302,7 @@ public class MisionServiceImpl implements MisionService {
         log.info("Asignando misión {} a {} estudiantes", misionId, estudiantesIds.size());
 
         Mision mision = misionRepository.findById(misionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada con ID: " + misionId));
 
         // Verificar que el profesor sea el dueño
         if (!mision.getProfesor().getId().equals(profesorId)) {
@@ -307,7 +312,7 @@ public class MisionServiceImpl implements MisionService {
         // Crear progreso y entrega para cada estudiante
         for (UUID estudianteId : estudiantesIds) {
             Usuario estudiante = usuarioRepository.findById(estudianteId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Estudiante no encontrado"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Estudiante no encontrado con ID: " + estudianteId));
 
             // Verificar si ya existe progreso
             if (progresoRepository.findByMisionIdAndEstudianteId(misionId, estudianteId).isEmpty()) {
@@ -380,12 +385,12 @@ public class MisionServiceImpl implements MisionService {
     }
 
     private void crearProgresoInicialParaEstudiantes(Mision mision) {
+        UUID cursoId = mision.getCurso().getId();
         List<UUID> estudiantesIds = inscripcionRepository
-                .findEstudiantesIdsByCursoId(mision.getCurso().getId());
+                .findEstudiantesIdsByCursoId(cursoId);
 
         for (UUID estudianteId : estudiantesIds) {
-            Usuario estudiante = usuarioRepository.findById(estudianteId).orElse(null);
-            if (estudiante != null) {
+            usuarioRepository.findById(estudianteId).ifPresent(estudiante -> {
                 ProgresoMision progreso = new ProgresoMision();
                 progreso.setMision(mision);
                 progreso.setEstudiante(estudiante);
@@ -399,19 +404,19 @@ public class MisionServiceImpl implements MisionService {
                 entrega.setEstudiante(estudiante);
                 entrega.setEstado(EstadoEntrega.PENDIENTE);
                 entregaRepository.save(entrega);
-            }
+            });
         }
     }
 
     private void notificarNuevaMision(Mision mision) {
+        UUID cursoId = mision.getCurso().getId();
         List<UUID> estudiantesIds = inscripcionRepository
-                .findEstudiantesIdsByCursoId(mision.getCurso().getId());
+                .findEstudiantesIdsByCursoId(cursoId);
 
         for (UUID estudianteId : estudiantesIds) {
-            Usuario estudiante = usuarioRepository.findById(estudianteId).orElse(null);
-            if (estudiante != null) {
+            usuarioRepository.findById(estudianteId).ifPresent(estudiante -> {
                 notificacionService.crearNotificacionNuevaMision(estudiante, mision);
-            }
+            });
         }
     }
 
@@ -501,6 +506,152 @@ public class MisionServiceImpl implements MisionService {
                 .estudiantesCompletados(completados.intValue())
                 .totalEstudiantes(totalEstudiantes.intValue())
                 .build();
+    }
+
+    // ========== MÉTODOS PARA ESTUDIANTES ==========
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MisionEstudianteResponse> listarMisionesPorEstudiante(UUID estudianteId) {
+        log.info("Listando misiones del estudiante: {}", estudianteId);
+
+        // Obtener todos los progresos del estudiante con JOIN FETCH para evitar lazy loading
+        List<ProgresoMision> progresos = progresoRepository.findByEstudianteIdWithMisionAndCurso(estudianteId);
+
+        return progresos.stream()
+                .map(progreso -> {
+                    Mision mision = progreso.getMision();
+                    EntregaMision entrega = entregaRepository
+                            .findByMisionIdAndEstudianteId(mision.getId(), estudianteId)
+                            .orElse(null);
+
+                    return MisionEstudianteResponse.builder()
+                            .id(mision.getId())
+                            .titulo(mision.getTitulo())
+                            .descripcion(mision.getDescripcion())
+                            .categoria(mision.getCategoria())
+                            .dificultad(mision.getDificultad())
+                            .puntosRecompensa(mision.getPuntosRecompensa())
+                            .experienciaRecompensa(mision.getExperienciaRecompensa())
+                            .fechaInicio(mision.getFechaInicio())
+                            .fechaLimite(mision.getFechaLimite())
+                            .activo(mision.getActivo())
+                            .cursoNombre(mision.getCurso().getNombre())
+                            .porcentajeCompletado(progreso.getPorcentajeCompletado())
+                            .completada(progreso.getCompletada())
+                            .fechaCompletado(progreso.getFechaCompletado())
+                            .estadoEntrega(entrega != null ? entrega.getEstado() : com.eduquestia.backend.entity.enums.EstadoEntrega.PENDIENTE)
+                            .puntosObtenidos(entrega != null && entrega.getPuntosObtenidos() != null ? entrega.getPuntosObtenidos() : 0)
+                            .ultimaActividad(progreso.getUltimaActividad())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public MisionEstudianteResponse completarMision(
+            UUID misionId, CompletarMisionRequest request, UUID estudianteId) {
+        log.info("Completando misión {} por estudiante {}", misionId, estudianteId);
+
+        // Validar que la misión existe
+        Mision mision = misionRepository.findById(misionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada con ID: " + misionId));
+
+        // Validar que el estudiante existe
+        Usuario estudiante = usuarioRepository.findById(estudianteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Estudiante no encontrado con ID: " + estudianteId));
+
+        // Obtener o crear progreso
+        ProgresoMision progreso = progresoRepository
+                .findByMisionIdAndEstudianteId(misionId, estudianteId)
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes esta misión asignada"));
+
+        // Validar que no esté ya completada
+        if (progreso.getCompletada()) {
+            throw new ValidationException("Esta misión ya fue completada");
+        }
+
+        // Validar fecha límite
+        if (mision.getFechaLimite().isBefore(java.time.LocalDateTime.now())) {
+            throw new ValidationException("La fecha límite para esta misión ha expirado");
+        }
+
+        // Actualizar progreso a 100% completado
+        progreso.setPorcentajeCompletado(100);
+        progreso.setCompletada(true);
+        progreso.setFechaCompletado(java.time.LocalDateTime.now());
+        progreso.setUltimaActividad(java.time.LocalDateTime.now());
+        progresoRepository.save(progreso);
+
+        // Obtener o crear entrega
+        EntregaMision entrega = entregaRepository
+                .findByMisionIdAndEstudianteId(misionId, estudianteId)
+                .orElseGet(() -> {
+                    EntregaMision nuevaEntrega = new EntregaMision();
+                    nuevaEntrega.setMision(mision);
+                    nuevaEntrega.setEstudiante(estudiante);
+                    return nuevaEntrega;
+                });
+
+        // Actualizar entrega
+        entrega.setEstado(com.eduquestia.backend.entity.enums.EstadoEntrega.ENVIADA);
+        entrega.setContenidoEntrega(request.getContenidoEntrega());
+        entrega.setArchivoUrl(request.getArchivoUrl());
+        entrega.setComentariosEstudiante(request.getComentariosEstudiante());
+        entrega.setFechaEnvio(java.time.LocalDateTime.now());
+
+        // Otorgar puntos automáticamente (el profesor puede ajustarlos después)
+        Integer puntosOtorgados = mision.getPuntosRecompensa();
+        entrega.setPuntosObtenidos(puntosOtorgados);
+        entregaRepository.save(entrega);
+
+        log.info("Misión {} completada por estudiante {}. Puntos otorgados: {}", 
+                misionId, estudianteId, puntosOtorgados);
+
+        // Verificar y otorgar logros
+        try {
+            gamificacionService.verificarYOtorgarLogros(estudianteId);
+        } catch (Exception e) {
+            log.warn("Error al verificar logros después de completar misión: {}", e.getMessage());
+            // No fallar la operación si hay error en logros
+        }
+
+        // Retornar respuesta
+        return MisionEstudianteResponse.builder()
+                .id(mision.getId())
+                .titulo(mision.getTitulo())
+                .descripcion(mision.getDescripcion())
+                .categoria(mision.getCategoria())
+                .dificultad(mision.getDificultad())
+                .puntosRecompensa(mision.getPuntosRecompensa())
+                .experienciaRecompensa(mision.getExperienciaRecompensa())
+                .fechaInicio(mision.getFechaInicio())
+                .fechaLimite(mision.getFechaLimite())
+                .activo(mision.getActivo())
+                .cursoNombre(mision.getCurso().getNombre())
+                .porcentajeCompletado(100)
+                .completada(true)
+                .fechaCompletado(progreso.getFechaCompletado())
+                .estadoEntrega(entrega.getEstado())
+                .puntosObtenidos(puntosOtorgados)
+                .ultimaActividad(progreso.getUltimaActividad())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Integer obtenerPuntosTotalesEstudiante(UUID estudianteId) {
+        log.info("Obteniendo puntos totales del estudiante: {}", estudianteId);
+
+        // Obtener todas las entregas calificadas del estudiante
+        List<EntregaMision> entregas = entregaRepository.findByEstudianteId(estudianteId);
+
+        // Sumar puntos obtenidos de todas las entregas completadas
+        return entregas.stream()
+                .filter(e -> e.getPuntosObtenidos() != null && e.getPuntosObtenidos() > 0)
+                .mapToInt(EntregaMision::getPuntosObtenidos)
+                .sum();
     }
 }
 

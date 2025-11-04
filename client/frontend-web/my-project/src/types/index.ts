@@ -121,3 +121,101 @@ export interface LoginResponse {
   message?: string;
 }
 
+// ==================== MISIONES ESTUDIANTE ====================
+
+export interface MisionEstudianteResponse {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  categoria: CategoriaMision;
+  dificultad: DificultadMision;
+  puntosRecompensa: number;
+  experienciaRecompensa: number;
+  fechaInicio: string;
+  fechaLimite: string;
+  activo: boolean;
+  cursoNombre: string;
+  porcentajeCompletado: number;
+  completada: boolean;
+  fechaCompletado?: string;
+  estadoEntrega: 'PENDIENTE' | 'ENVIADA' | 'REVISANDO' | 'CALIFICADA' | 'RECHAZADA';
+  puntosObtenidos: number;
+  ultimaActividad: string;
+}
+
+export interface CompletarMisionRequest {
+  contenidoEntrega: string;
+  archivoUrl?: string;
+  comentariosEstudiante?: string;
+}
+
+// ==================== GAMIFICACIÓN ====================
+
+export interface LogroResponse {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  icono?: string;
+  puntosRequeridos: number;
+  fechaObtenido?: string;
+  obtenido: boolean;
+}
+
+export interface PerfilGamificadoResponse {
+  puntosTotales: number;
+  nivel: number;
+  nombreNivel: string;
+  puntosParaSiguienteNivel: number;
+  misionesCompletadas: number;
+  logrosObtenidos: number;
+  logros: LogroResponse[];
+  posicionRanking?: number;
+}
+
+export interface RankingEstudianteResponse {
+  estudianteId: string;
+  nombreEstudiante: string;
+  puntosTotales: number;
+  nivel: number;
+  nombreNivel: string;
+  misionesCompletadas: number;
+  posicion: number;
+}
+
+export interface RankingResponse {
+  cursoId?: string;
+  cursoNombre: string;
+  estudiantes: RankingEstudianteResponse[];
+  totalEstudiantes: number;
+}
+
+export interface EstudianteSimple {
+  id: string;
+  nombreCompleto: string;
+  email: string;
+  username: string;
+  avatarUrl?: string;
+  fechaInscripcion?: string;
+}
+
+// ==================== PROGRESO DE ESTUDIANTES ====================
+
+export interface EstudianteProgresoResponse {
+  estudianteId: string;
+  nombreCompleto: string;
+  avatarUrl?: string;
+  porcentajeCompletado: number;
+  estado: string; // 'completada' | 'en_progreso' | 'no_iniciada'
+  ultimaActividad: string;
+}
+
+export interface MisionProgresoResponse {
+  misionId: string;
+  titulo: string;
+  totalEstudiantes: number;
+  completados: number;
+  enProgreso: number;
+  noIniciados: number;
+  estudiantes: EstudianteProgresoResponse[];
+}
+

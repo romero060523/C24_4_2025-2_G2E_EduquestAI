@@ -1,36 +1,46 @@
+﻿import uuid
 from django.db import models
-import uuid
-from django.contrib.auth import get_user_model
+from django.core.validators import MinLengthValidator
+from apps.users.models import User
 
-# Create your models here.
-
-User = get_user_model()
 
 class Curso(models.Model):
+    """Modelo para cursos"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    codigo_curso = models.CharField(max_length=20, unique=True)
-    nombre = models.CharField(max_length=100)
-    descripcion = models.TextField(blank=True, null=True)
-    imagen_portada = models.CharField(max_length=255, blank=True, null=True)
-    fecha_inicio = models.DateField(blank=True, null=True)
-    fecha_fin = models.DateField(blank=True, null=True)
-    activo = models.BooleanField(default=True)
+    codigo_curso = models.CharField(
+        max_length=20,
+        unique=True,
+        validators=[MinLengthValidator(3)],
+        help_text="Código único del curso (ej: MAT101)"
+    )
+    nombre = models.CharField(max_length=100, help_text="Nombre del curso")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción del curso")
+    imagen_portada = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="URL de la imagen de portada"
+    )
+    fecha_inicio = models.DateField(blank=True, null=True, help_text="Fecha de inicio del curso")
+    fecha_fin = models.DateField(blank=True, null=True, help_text="Fecha de fin del curso")
+    activo = models.BooleanField(default=True, help_text="Indica si el curso está activo")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'cursos'
-        managed = True
-        ordering = ['-fecha_creacion']  # Lista, no set
+        managed = True  # Django gestiona esta tabla
         verbose_name = 'Curso'
         verbose_name_plural = 'Cursos'
+        ordering = ['-fecha_creacion']
 
     def __str__(self):
         return f"{self.codigo_curso} - {self.nombre}"
-    
+
 
 class CursoProfesor(models.Model):
-    ROLES = [
+    """Relación N:M entre cursos y profesores"""
+    ROL_PROFESOR_CHOICES = [
         ('titular', 'Titular'),
         ('asistente', 'Asistente'),
     ]
@@ -49,26 +59,27 @@ class CursoProfesor(models.Model):
         limit_choices_to={'rol': 'profesor'},
         db_column='profesor_id'
     )
-    rol_profesor = models.CharField(max_length=20, choices=ROLES, default='titular')
+    rol_profesor = models.CharField(
+        max_length=20,
+        choices=ROL_PROFESOR_CHOICES,
+        default='titular',
+        help_text="Rol del profesor en el curso"
+    )
     fecha_asignacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'cursos_profesores'
         managed = True
-        unique_together = [['curso', 'profesor']]
-        ordering = ['-fecha_asignacion']
-        verbose_name = 'Asignación de Profesor'
-        verbose_name_plural = 'Asignaciones de Profesores'
-        indexes = [
-            models.Index(fields=['curso', 'rol_profesor']),
-            models.Index(fields=['profesor']),
-        ]
+        unique_together = ['curso', 'profesor']
+        verbose_name = 'Asignación Profesor-Curso'
+        verbose_name_plural = 'Asignaciones Profesor-Curso'
 
     def __str__(self):
-        return f"{self.profesor.nombre_completo} - {self.curso.nombre} ({self.get_rol_profesor_display()})"
+        return f"{self.profesor.nombre_completo} - {self.curso.nombre} ({self.rol_profesor})"
 
 
 class Inscripcion(models.Model):
+    """Modelo para inscripciones de estudiantes en cursos"""
     ESTADOS = [
         ('activo', 'Activo'),
         ('completado', 'Completado'),
@@ -92,12 +103,11 @@ class Inscripcion(models.Model):
     fecha_inscripcion = models.DateTimeField(auto_now_add=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='activo')
     fecha_completado = models.DateTimeField(blank=True, null=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'inscripciones'
         managed = True
-        unique_together = [['estudiante', 'curso']]  # Lista de lista
+        unique_together = ['estudiante', 'curso']
         ordering = ['-fecha_inscripcion']
         verbose_name = 'Inscripción'
         verbose_name_plural = 'Inscripciones'

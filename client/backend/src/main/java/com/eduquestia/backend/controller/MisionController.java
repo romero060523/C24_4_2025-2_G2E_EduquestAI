@@ -1,8 +1,10 @@
 package com.eduquestia.backend.controller;
 
+import com.eduquestia.backend.dto.request.CompletarMisionRequest;
 import com.eduquestia.backend.dto.request.MisionCreateRequest;
 import com.eduquestia.backend.dto.request.MisionUpdateRequest;
 import com.eduquestia.backend.dto.response.ApiResponse;
+import com.eduquestia.backend.dto.response.MisionEstudianteResponse;
 import com.eduquestia.backend.dto.response.MisionListResponse;
 import com.eduquestia.backend.dto.response.MisionProgresoResponse;
 import com.eduquestia.backend.dto.response.MisionResponse;
@@ -46,23 +48,6 @@ public class MisionController {
     }
 
     /**
-     * Obtener detalle de una misión
-     * GET /api/v1/missions/{id}
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<MisionResponse>> obtenerMision(
-            @PathVariable UUID id) {
-
-        log.info("GET /misiones/{} - Obtener misión", id);
-
-        MisionResponse response = misionService.obtenerMisionPorId(id);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(response, "Misión obtenida exitosamente")
-        );
-    }
-
-    /**
      * Listar todas las misiones del profesor
      * GET /api/v1/missions/profesor/{profesorId}
      */
@@ -76,6 +61,57 @@ public class MisionController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(response, "Misiones obtenidas exitosamente")
+        );
+    }
+
+    /**
+     * Listar misiones asignadas al estudiante
+     * GET /api/v1/misiones/estudiante/{estudianteId}
+     */
+    @GetMapping("/estudiante/{estudianteId}")
+    public ResponseEntity<ApiResponse<List<MisionEstudianteResponse>>> listarMisionesPorEstudiante(
+            @PathVariable UUID estudianteId) {
+
+        log.info("GET /misiones/estudiante/{} - Listar misiones del estudiante", estudianteId);
+
+        List<MisionEstudianteResponse> response = misionService.listarMisionesPorEstudiante(estudianteId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Misiones obtenidas exitosamente")
+        );
+    }
+
+    /**
+     * Obtener puntos totales del estudiante
+     * GET /api/v1/misiones/estudiante/{estudianteId}/puntos
+     */
+    @GetMapping("/estudiante/{estudianteId}/puntos")
+    public ResponseEntity<ApiResponse<Integer>> obtenerPuntosTotalesEstudiante(
+            @PathVariable UUID estudianteId) {
+
+        log.info("GET /misiones/estudiante/{}/puntos - Obtener puntos totales", estudianteId);
+
+        Integer puntos = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(puntos, "Puntos totales obtenidos exitosamente")
+        );
+    }
+
+    /**
+     * Obtener detalle de una misión
+     * GET /api/v1/missions/{id}
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<MisionResponse>> obtenerMision(
+            @PathVariable UUID id) {
+
+        log.info("GET /misiones/{} - Obtener misión", id);
+
+        MisionResponse response = misionService.obtenerMisionPorId(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Misión obtenida exitosamente")
         );
     }
 
@@ -175,6 +211,27 @@ public class MisionController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(null, "Misión asignada exitosamente")
+        );
+    }
+
+    // ========== ENDPOINTS PARA ESTUDIANTES ==========
+
+    /**
+     * Completar una misión
+     * POST /api/v1/misiones/{id}/completar
+     */
+    @PostMapping("/{id}/completar")
+    public ResponseEntity<ApiResponse<MisionEstudianteResponse>> completarMision(
+            @PathVariable UUID id,
+            @Valid @RequestBody CompletarMisionRequest request,
+            @RequestHeader("X-Estudiante-Id") UUID estudianteId) {
+
+        log.info("POST /misiones/{}/completar - Completar misión por estudiante {}", id, estudianteId);
+
+        MisionEstudianteResponse response = misionService.completarMision(id, request, estudianteId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Misión completada exitosamente. ¡Has ganado " + response.getPuntosObtenidos() + " puntos!")
         );
     }
 }

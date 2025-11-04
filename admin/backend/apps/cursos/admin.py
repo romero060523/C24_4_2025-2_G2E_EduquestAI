@@ -1,4 +1,4 @@
-from django.contrib import admin
+﻿from django.contrib import admin
 from .models import Curso, Inscripcion, CursoProfesor
 
 
@@ -13,13 +13,16 @@ class CursoAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('codigo_curso', 'nombre', 'descripcion', 'imagen_portada')
+            'fields': ('id', 'codigo_curso', 'nombre', 'descripcion', 'imagen_portada')
         }),
-        ('Fechas del Curso', {
-            'fields': ('fecha_inicio', 'fecha_fin', 'activo')
+        ('Fechas', {
+            'fields': ('fecha_inicio', 'fecha_fin')
         }),
-        ('Metadata', {
-            'fields': ('id', 'fecha_creacion', 'fecha_actualizacion'),
+        ('Estado', {
+            'fields': ('activo',)
+        }),
+        ('Auditoría', {
+            'fields': ('fecha_creacion', 'fecha_actualizacion'),
             'classes': ('collapse',)
         }),
     )
@@ -35,7 +38,7 @@ class InscripcionAdmin(admin.ModelAdmin):
     list_filter = ['estado', 'fecha_inscripcion', 'curso']
     search_fields = ['estudiante__username', 'estudiante__email', 
                      'estudiante__nombre_completo', 'curso__nombre', 'curso__codigo_curso']
-    readonly_fields = ['id', 'fecha_inscripcion', 'fecha_actualizacion']
+    readonly_fields = ['id', 'fecha_inscripcion']
     raw_id_fields = ['estudiante', 'curso']
     ordering = ['-fecha_inscripcion']
     
@@ -44,7 +47,7 @@ class InscripcionAdmin(admin.ModelAdmin):
             'fields': ('estudiante', 'curso', 'estado')
         }),
         ('Fechas', {
-            'fields': ('fecha_inscripcion', 'fecha_completado', 'fecha_actualizacion')
+            'fields': ('fecha_inscripcion', 'fecha_completado')
         }),
         ('Metadata', {
             'fields': ('id',),
@@ -61,10 +64,9 @@ class InscripcionAdmin(admin.ModelAdmin):
 class CursoProfesorAdmin(admin.ModelAdmin):
     list_display = ['profesor', 'curso', 'rol_profesor', 'fecha_asignacion']
     list_filter = ['rol_profesor', 'fecha_asignacion']
-    search_fields = ['profesor__username', 'profesor__email', 
-                     'profesor__nombre_completo', 'curso__nombre', 'curso__codigo_curso']
+    search_fields = ['profesor__nombre_completo', 'profesor__email', 'curso__nombre', 'curso__codigo_curso']
     readonly_fields = ['id', 'fecha_asignacion']
-    raw_id_fields = ['profesor', 'curso']
+    autocomplete_fields = ['profesor', 'curso']
     ordering = ['-fecha_asignacion']
     
     fieldsets = (

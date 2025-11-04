@@ -4,13 +4,16 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * Entidad Curso - SOLO LECTURA
+ * Esta tabla es gestionada por el admin-backend (Django)
+ * El client-backend solo consulta esta información como referencia
+ */
 @Entity
 @Table(name = "cursos", schema = "grupo_03")
 @Data
@@ -19,7 +22,7 @@ import java.util.UUID;
 public class Curso {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(columnDefinition = "uuid")
     private UUID id;
 
     @Column(name = "codigo_curso", unique = true, nullable = false, length = 20)
@@ -43,11 +46,10 @@ public class Curso {
     @Column(nullable = false)
     private Boolean activo = true;
 
-    @CreationTimestamp
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
-    private LocalDateTime fechaCreacion;
+    // Django usa OffsetDateTime (timestamp with time zone)
+    @Column(name = "fecha_creacion", nullable = false)
+    private OffsetDateTime fechaCreacion;
 
-    @UpdateTimestamp
-    @Column(name = "fecha_actualizacion")
-    private LocalDateTime fechaActualizacion;
+    @Column(name = "fecha_actualizacion", nullable = false)
+    private OffsetDateTime fechaActualizacion;
 }

@@ -10,9 +10,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de Inscripcion - SOLO LECTURA
+ * Esta tabla es gestionada por el admin-backend (Django)
+ * El client-backend solo realiza consultas de lectura
+ * NO usar métodos save(), delete(), etc.
+ */
 @Repository
 public interface InscripcionRepository extends JpaRepository<Inscripcion, UUID> {
 
+    // Consultas de lectura permitidas
     List<Inscripcion> findByCursoId(UUID cursoId);
 
     List<Inscripcion> findByEstudianteId(UUID estudianteId);
@@ -24,4 +31,10 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, UUID> 
 
     @Query("SELECT COUNT(i) FROM Inscripcion i WHERE i.curso.id = :cursoId")
     Long countEstudiantesByCurso(@Param("cursoId") UUID cursoId);
+
+    @Query("SELECT i FROM Inscripcion i WHERE i.curso.id = :cursoId AND i.estado = 'activo'")
+    List<Inscripcion> findInscripcionesActivasByCursoId(@Param("cursoId") UUID cursoId);
+
+    @Query("SELECT COUNT(i) FROM Inscripcion i WHERE i.estudiante.id = :estudianteId AND i.estado = 'activo'")
+    Long countCursosActivosByEstudiante(@Param("estudianteId") UUID estudianteId);
 }

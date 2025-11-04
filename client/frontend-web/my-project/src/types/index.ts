@@ -198,3 +198,24 @@ export interface EstudianteSimple {
   fechaInscripcion?: string;
 }
 
+// ==================== PROGRESO DE ESTUDIANTES ====================
+
+export interface EstudianteProgresoResponse {
+  estudianteId: string;
+  nombreCompleto: string;
+  avatarUrl?: string;
+  porcentajeCompletado: number;
+  estado: string; // 'completada' | 'en_progreso' | 'no_iniciada'
+  ultimaActividad: string;
+}
+
+export interface MisionProgresoResponse {
+  misionId: string;
+  titulo: string;
+  totalEstudiantes: number;
+  completados: number;
+  enProgreso: number;
+  noIniciados: number;
+  estudiantes: EstudianteProgresoResponse[];
+}
+

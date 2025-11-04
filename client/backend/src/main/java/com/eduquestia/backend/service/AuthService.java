@@ -98,14 +98,19 @@ public class AuthService {
         String bcryptHash = hashedPassword;
         
         if (hashedPassword.startsWith("bcrypt_pure$") || hashedPassword.startsWith("bcrypt_sha256$")) {
-            // Formato Django: bcrypt_pure$$2b$12$hash o bcrypt_sha256$$2b$12$hash
-            // Extraer solo la parte BCrypt ($2b$12$hash)
+            // Formato Django: bcrypt_pure$$2a$12$hash o bcrypt_sha256$$2b$12$hash
+            // Extraer solo la parte BCrypt ($2a$12$hash o $2b$12$hash)
+            // El hash tiene formato: bcrypt_pure$$2a$12$... (doble $)
             int firstDollar = hashedPassword.indexOf('$');
-            if (firstDollar != -1 && firstDollar + 1 < hashedPassword.length()) {
-                bcryptHash = hashedPassword.substring(firstDollar + 1); // Saltar "bcrypt_pure$"
-                log.info("Hash Django detectado ({}), extrayendo BCrypt puro: {}...", 
-                    hashedPassword.substring(0, Math.min(15, hashedPassword.length())),
-                    bcryptHash.substring(0, Math.min(20, bcryptHash.length())));
+            if (firstDollar != -1) {
+                // Buscar el segundo $ después del prefijo
+                int secondDollar = hashedPassword.indexOf('$', firstDollar + 1);
+                if (secondDollar != -1 && secondDollar + 1 < hashedPassword.length()) {
+                    // Extraer desde el segundo $ (que es el inicio del hash BCrypt: $2a$...)
+                    bcryptHash = hashedPassword.substring(secondDollar);
+                    log.info("Hash Django detectado, extrayendo BCrypt puro: {}...", 
+                        bcryptHash.substring(0, Math.min(20, bcryptHash.length())));
+                }
             }
         }
         

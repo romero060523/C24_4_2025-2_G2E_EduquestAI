@@ -7,6 +7,8 @@ import MisionesPage from "./pages/MisionesPage";
 import EstudiantesPage from "./pages/profesor/EstudiantesPage";
 import ReportesPage from "./pages/profesor/ReportesPage";
 import RecursosPage from "./pages/profesor/RecursosPage";
+import ProgresoEstudiantesPage from "./pages/profesor/ProgresoEstudiantesPage";
+import RankingGrupoPage from "./pages/profesor/RankingGrupoPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardEstudiante from "./pages/estudiante/DashboardEstudiante";
 import CursosEstudiante from "./pages/estudiante/CursosEstudiante";
@@ -35,6 +37,8 @@ function App() {
         <Route path="cursos" element={<CursosPage />} />
         <Route path="misiones" element={<MisionesPage />} />
         <Route path="estudiantes" element={<EstudiantesPage />} />
+        <Route path="progreso" element={<ProgresoEstudiantesPage />} />
+        <Route path="ranking" element={<RankingGrupoPage />} />
         <Route path="reportes" element={<ReportesPage />} />
         <Route path="recursos" element={<RecursosPage />} />
 

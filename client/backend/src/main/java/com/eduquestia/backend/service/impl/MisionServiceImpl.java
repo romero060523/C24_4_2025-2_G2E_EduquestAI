@@ -16,8 +16,8 @@ import com.eduquestia.backend.repository.*;
 import com.eduquestia.backend.service.GamificacionService;
 import com.eduquestia.backend.service.MisionService;
 import com.eduquestia.backend.service.NotificacionService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 @Slf4j
 @SuppressWarnings("null")
 public class MisionServiceImpl implements MisionService {
@@ -43,6 +42,29 @@ public class MisionServiceImpl implements MisionService {
     private final EntregaMisionRepository entregaRepository;
     private final NotificacionService notificacionService;
     private final GamificacionService gamificacionService;
+
+    public MisionServiceImpl(
+            MisionRepository misionRepository,
+            UsuarioRepository usuarioRepository,
+            CursoRepository cursoRepository,
+            ContenidoMisionRepository contenidoRepository,
+            CriteriosEvaluacionRepository criteriosRepository,
+            InscripcionRepository inscripcionRepository,
+            ProgresoMisionRepository progresoRepository,
+            EntregaMisionRepository entregaRepository,
+            NotificacionService notificacionService,
+            @Lazy GamificacionService gamificacionService) {
+        this.misionRepository = misionRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.cursoRepository = cursoRepository;
+        this.contenidoRepository = contenidoRepository;
+        this.criteriosRepository = criteriosRepository;
+        this.inscripcionRepository = inscripcionRepository;
+        this.progresoRepository = progresoRepository;
+        this.entregaRepository = entregaRepository;
+        this.notificacionService = notificacionService;
+        this.gamificacionService = gamificacionService;
+    }
 
     @Override
     public MisionResponse crearMision(MisionCreateRequest request, UUID profesorId) {

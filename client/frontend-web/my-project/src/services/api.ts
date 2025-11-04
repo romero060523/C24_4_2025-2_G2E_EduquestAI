@@ -10,6 +10,8 @@ import type {
   ApiError,
   LoginResponse,
   Curso,
+  MisionProgresoResponse,
+  RankingResponse,
 } from "../types";
 
 // Configuración base de axios
@@ -262,6 +264,25 @@ class ApiService {
   }> {
     const response = await this.api.get(`/cursos/profesor/${profesorId}/estadisticas`);
     return response.data?.data || { totalCursos: 0, totalEstudiantes: 0 };
+  }
+
+  // ==================== PROGRESO DE ESTUDIANTES ====================
+
+  async obtenerProgresoMision(misionId: string): Promise<MisionProgresoResponse> {
+    const profesorId = localStorage.getItem("profesorId") || localStorage.getItem("userId") || "";
+    const response = await this.api.get(`/misiones/${misionId}/progreso`, {
+      headers: {
+        "X-Profesor-Id": profesorId,
+      },
+    });
+    return response.data?.data || response.data;
+  }
+
+  // ==================== RANKING PARA PROFESOR ====================
+
+  async obtenerRankingPorCursoProfesor(cursoId: string): Promise<RankingResponse> {
+    const response = await this.api.get(`/gamificacion/ranking/curso/${cursoId}`);
+    return response.data?.data || response.data;
   }
 }
 

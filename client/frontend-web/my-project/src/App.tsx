@@ -14,9 +14,9 @@ import DashboardEstudiante from "./pages/estudiante/DashboardEstudiante";
 import CursosEstudiante from "./pages/estudiante/CursosEstudiante";
 import MisionesEstudiante from "./pages/estudiante/MisionesEstudiante";
 import RecompensasEstudiante from "./pages/estudiante/RecompensasEstudiante";
-import RankingEstudiante from "./pages/estudiante/RankingEstudiante";
-import PerfilEstudiante from "./pages/estudiante/PerfilEstudiante";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RankingPage from "./pages/estudiante/RankingPage";
+import PerfilGamificado from "./pages/estudiante/PerfilGamificado";
 
 function App() {
   return (
@@ -59,8 +59,8 @@ function App() {
         <Route path="cursos" element={<CursosEstudiante />} />
         <Route path="misiones" element={<MisionesEstudiante />} />
         <Route path="recompensas" element={<RecompensasEstudiante />} />
-        <Route path="ranking" element={<RankingEstudiante />} />
-        <Route path="perfil" element={<PerfilEstudiante />} />
+        <Route path="ranking" element={<RankingPage />} />
+        <Route path="perfil" element={<PerfilGamificado />} />
 
         {/* Redirección por defecto */}
         <Route index element={<Navigate to="inicio" replace />} />

@@ -1,19 +1,23 @@
-import { useEffect, useState } from 'react';
-import { apiService } from '../../services/api';
-import { useAuth } from '../../hooks/useAuth';
-import type { MisionEstudianteResponse, CompletarMisionRequest } from '../../types';
+import { useEffect, useState } from "react";
+import { apiService } from "../../services/api";
+import { useAuth } from "../../hooks/useAuth";
+import type {
+  MisionEstudianteResponse,
+  CompletarMisionRequest,
+} from "../../types";
 
 const MisionesEstudiante = () => {
   const { usuario } = useAuth();
   const [misiones, setMisiones] = useState<MisionEstudianteResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMision, setSelectedMision] = useState<MisionEstudianteResponse | null>(null);
+  const [selectedMision, setSelectedMision] =
+    useState<MisionEstudianteResponse | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<CompletarMisionRequest>({
-    contenidoEntrega: '',
-    archivoUrl: '',
-    comentariosEstudiante: '',
+    contenidoEntrega: "",
+    archivoUrl: "",
+    comentariosEstudiante: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,14 +29,16 @@ const MisionesEstudiante = () => {
     setLoading(true);
     setError(null);
     try {
-      const estudianteId = localStorage.getItem('estudianteId') || usuario?.id || '';
+      const estudianteId =
+        localStorage.getItem("estudianteId") || usuario?.id || "";
       if (!estudianteId) {
-        throw new Error('No se encontró el ID del estudiante');
+        throw new Error("No se encontró el ID del estudiante");
       }
       const result = await apiService.listarMisionesPorEstudiante(estudianteId);
       setMisiones(result);
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Error cargando misiones';
+      const errorMessage =
+        e instanceof Error ? e.message : "Error cargando misiones";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -41,14 +47,26 @@ const MisionesEstudiante = () => {
 
   const handleCompletarClick = (mision: MisionEstudianteResponse) => {
     if (mision.completada) {
-      alert('Esta misión ya fue completada');
+      alert("Esta misión ya fue completada");
       return;
     }
+
+    // Verificar si la misión está expirada
+    const fechaLimite = new Date(mision.fechaLimite);
+    const ahora = new Date();
+    if (fechaLimite < ahora) {
+      alert(
+        "Esta misión ya ha expirado. La fecha límite era: " +
+          formatDate(mision.fechaLimite)
+      );
+      return;
+    }
+
     setSelectedMision(mision);
     setFormData({
-      contenidoEntrega: '',
-      archivoUrl: '',
-      comentariosEstudiante: '',
+      contenidoEntrega: "",
+      archivoUrl: "",
+      comentariosEstudiante: "",
     });
     setShowModal(true);
   };
@@ -63,13 +81,20 @@ const MisionesEstudiante = () => {
       setShowModal(false);
       setSelectedMision(null);
       await loadMisiones();
-      alert(`¡Felicidades! Has completado la misión y ganado ${selectedMision.puntosRecompensa} puntos.`);
+      alert(
+        `¡Felicidades! Has completado la misión y ganado ${selectedMision.puntosRecompensa} puntos.`
+      );
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Error al completar la misión';
+      const errorMessage =
+        e instanceof Error ? e.message : "Error al completar la misión";
       alert(errorMessage);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const isExpired = (fechaLimite: string) => {
+    return new Date(fechaLimite) < new Date();
   };
 
   const getEstadoBadge = (mision: MisionEstudianteResponse) => {
@@ -81,6 +106,17 @@ const MisionesEstudiante = () => {
         </span>
       );
     }
+
+    // Verificar si está expirada
+    if (isExpired(mision.fechaLimite)) {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <span>🔒</span>
+          Expirada
+        </span>
+      );
+    }
+
     if (mision.porcentajeCompletado > 0) {
       return (
         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -99,27 +135,27 @@ const MisionesEstudiante = () => {
 
   const getDificultadColor = (dificultad: string) => {
     switch (dificultad) {
-      case 'FACIL':
-        return 'bg-green-100 text-green-800';
-      case 'MEDIO':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'DIFICIL':
-        return 'bg-orange-100 text-orange-800';
-      case 'EXPERTO':
-        return 'bg-red-100 text-red-800';
+      case "FACIL":
+        return "bg-green-100 text-green-800";
+      case "MEDIO":
+        return "bg-yellow-100 text-yellow-800";
+      case "DIFICIL":
+        return "bg-orange-100 text-orange-800";
+      case "EXPERTO":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -142,9 +178,12 @@ const MisionesEstudiante = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Mis Misiones Asignadas</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Mis Misiones Asignadas
+        </h1>
         <p className="text-gray-500 mt-1">
-          Misiones creadas por tus profesores. Completa misiones para ganar puntos y experiencia
+          Misiones creadas por tus profesores. Completa misiones para ganar
+          puntos y experiencia
         </p>
       </div>
 
@@ -160,77 +199,104 @@ const MisionesEstudiante = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {misiones.map((mision) => (
-            <div
-              key={mision.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    {mision.titulo}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    📚 {mision.cursoNombre} • Asignada por tu profesor
-                  </p>
-                  {getEstadoBadge(mision)}
+          {misiones.map((mision) => {
+            const expired = isExpired(mision.fechaLimite);
+            return (
+              <div
+                key={mision.id}
+                className={`rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow ${
+                  expired && !mision.completada
+                    ? "bg-gray-50 border-red-200 opacity-75"
+                    : "bg-white border-gray-200"
+                }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      {mision.titulo}
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-2">
+                      📚 {mision.cursoNombre} • Asignada por tu profesor
+                    </p>
+                    {getEstadoBadge(mision)}
+                  </div>
                 </div>
-              </div>
 
-              <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                {mision.descripcion}
-              </p>
+                <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                  {mision.descripcion}
+                </p>
 
-              <div className="flex items-center gap-4 mb-4 text-sm">
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${getDificultadColor(
-                    mision.dificultad
-                  )}`}
-                >
-                  {mision.dificultad}
-                </span>
-                <span className="flex items-center gap-1 text-gray-600">
-                  <span className="text-yellow-500">⭐</span>
-                  {mision.puntosRecompensa} pts
-                </span>
-              </div>
-
-              {mision.completada && mision.puntosObtenidos > 0 && (
-                <div className="mb-4 p-2 bg-green-50 rounded text-sm text-green-800">
-                  <strong>Puntos obtenidos: {mision.puntosObtenidos}</strong>
+                <div className="flex items-center gap-4 mb-4 text-sm">
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${getDificultadColor(
+                      mision.dificultad
+                    )}`}
+                  >
+                    {mision.dificultad}
+                  </span>
+                  <span className="flex items-center gap-1 text-gray-600">
+                    <span className="text-yellow-500">⭐</span>
+                    {mision.puntosRecompensa} pts
+                  </span>
                 </div>
-              )}
 
-              <div className="mb-4">
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                  <span>Progreso</span>
-                  <span>{mision.porcentajeCompletado}%</span>
+                {mision.completada && mision.puntosObtenidos > 0 && (
+                  <div className="mb-4 p-2 bg-green-50 rounded text-sm text-green-800">
+                    <strong>Puntos obtenidos: {mision.puntosObtenidos}</strong>
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                    <span>Progreso</span>
+                    <span>{mision.porcentajeCompletado}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${mision.porcentajeCompletado}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+
+                <div className="text-xs text-gray-500 mb-4">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all"
-                    style={{ width: `${mision.porcentajeCompletado}%` }}
-                  />
+                    className={
+                      isExpired(mision.fechaLimite)
+                        ? "text-red-600 font-semibold"
+                        : ""
+                    }
+                  >
+                    Fecha límite: {formatDate(mision.fechaLimite)}
+                    {isExpired(mision.fechaLimite) && " ⚠️"}
+                  </div>
+                  {mision.fechaCompletado && (
+                    <div>Completada: {formatDate(mision.fechaCompletado)}</div>
+                  )}
                 </div>
-              </div>
 
-              <div className="text-xs text-gray-500 mb-4">
-                <div>Fecha límite: {formatDate(mision.fechaLimite)}</div>
-                {mision.fechaCompletado && (
-                  <div>Completada: {formatDate(mision.fechaCompletado)}</div>
+                {!mision.completada && (
+                  <>
+                    {isExpired(mision.fechaLimite) ? (
+                      <button
+                        disabled
+                        className="w-full bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-medium cursor-not-allowed"
+                      >
+                        🔒 Misión Expirada
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleCompletarClick(mision)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        Completar Misión
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
-
-              {!mision.completada && (
-                <button
-                  onClick={() => handleCompletarClick(mision)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  Completar Misión
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -253,20 +319,27 @@ const MisionesEstudiante = () => {
 
               <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800 mb-2">
-                  <strong>Puntos a ganar:</strong> {selectedMision.puntosRecompensa}
+                  <strong>Puntos a ganar:</strong>{" "}
+                  {selectedMision.puntosRecompensa}
                 </p>
-                <p className="text-sm text-gray-600">{selectedMision.descripcion}</p>
+                <p className="text-sm text-gray-600">
+                  {selectedMision.descripcion}
+                </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Contenido de la entrega <span className="text-red-500">*</span>
+                    Contenido de la entrega{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     value={formData.contenidoEntrega}
                     onChange={(e) =>
-                      setFormData({ ...formData, contenidoEntrega: e.target.value })
+                      setFormData({
+                        ...formData,
+                        contenidoEntrega: e.target.value,
+                      })
                     }
                     required
                     rows={6}
@@ -281,7 +354,7 @@ const MisionesEstudiante = () => {
                   </label>
                   <input
                     type="url"
-                    value={formData.archivoUrl || ''}
+                    value={formData.archivoUrl || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, archivoUrl: e.target.value })
                     }
@@ -295,9 +368,12 @@ const MisionesEstudiante = () => {
                     Comentarios adicionales (opcional)
                   </label>
                   <textarea
-                    value={formData.comentariosEstudiante || ''}
+                    value={formData.comentariosEstudiante || ""}
                     onChange={(e) =>
-                      setFormData({ ...formData, comentariosEstudiante: e.target.value })
+                      setFormData({
+                        ...formData,
+                        comentariosEstudiante: e.target.value,
+                      })
                     }
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -319,7 +395,7 @@ const MisionesEstudiante = () => {
                     disabled={submitting}
                     className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50"
                   >
-                    {submitting ? 'Enviando...' : 'Completar y Enviar'}
+                    {submitting ? "Enviando..." : "Completar y Enviar"}
                   </button>
                 </div>
               </form>

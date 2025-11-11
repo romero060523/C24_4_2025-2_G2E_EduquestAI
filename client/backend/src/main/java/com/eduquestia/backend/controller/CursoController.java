@@ -1,7 +1,9 @@
 package com.eduquestia.backend.controller;
 
 import com.eduquestia.backend.entity.Curso;
+import com.eduquestia.backend.entity.Inscripcion;
 import com.eduquestia.backend.repository.CursoRepository;
+import com.eduquestia.backend.repository.InscripcionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Controlador de Curso - SOLO CONSULTAS
@@ -24,6 +27,21 @@ import java.util.UUID;
 public class CursoController {
 
     private final CursoRepository cursoRepository;
+    private final InscripcionRepository inscripcionRepository;
+
+    /**
+     * Lista los cursos de un estudiante basado en sus inscripciones
+     */
+    @GetMapping("/por-estudiante/{estudianteId}")
+    public ResponseEntity<List<Curso>> listarCursosPorEstudiante(@PathVariable UUID estudianteId) {
+        List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteId(estudianteId);
+        List<Curso> cursos = inscripciones.stream()
+                .map(Inscripcion::getCurso)
+                .filter(Curso::getActivo)
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(cursos);
+    }
 
     /**
      * Lista todos los cursos activos

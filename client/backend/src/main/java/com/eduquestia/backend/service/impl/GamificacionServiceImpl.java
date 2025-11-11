@@ -164,7 +164,7 @@ public class GamificacionServiceImpl implements GamificacionService {
         // Obtener todas las inscripciones activas del curso
         List<Inscripcion> inscripciones = inscripcionRepository.findByCursoId(cursoId)
                 .stream()
-                .filter(i -> i.getEstado().name().equals("ACTIVO"))
+                .filter(i -> "activo".equals(i.getEstado()))
                 .collect(Collectors.toList());
 
         List<RankingEstudianteResponse> rankingEstudiantes = new ArrayList<>();
@@ -219,9 +219,7 @@ public class GamificacionServiceImpl implements GamificacionService {
         log.info("Obteniendo ranking global");
 
         // Obtener todos los estudiantes activos
-        List<Usuario> estudiantes = usuarioRepository.findByRolAndActivoTrue(
-                com.eduquestia.backend.entity.enums.RolUsuario.ESTUDIANTE
-        );
+        List<Usuario> estudiantes = usuarioRepository.findByRolAndActivoTrue("estudiante");
 
         List<RankingEstudianteResponse> rankingEstudiantes = new ArrayList<>();
 

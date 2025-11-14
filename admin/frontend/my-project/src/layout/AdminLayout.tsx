@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, BookOpen, LogOut } from "lucide-react";
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -18,16 +18,21 @@ export default function AdminLayout() {
       label: "Usuarios",
       icon: Users,
     },
+    {
+      path: "/admin/cursos",
+      label: "Cursos",
+      icon: BookOpen,
+    },
   ];
 
   function handleLogout() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
-      if (window.confirm("¿Estás seguro que deseas cerrar sesión?")) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        navigate("/admin/login");
-      }
+    if (window.confirm("¿Estás seguro que deseas cerrar sesión?")) {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      navigate("/admin/login");
+    }
   }
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -89,7 +94,9 @@ export default function AdminLayout() {
                 if (pathName === "/admin/dashboard") {
                   return (
                     <>
-                      <h1 className="text-2xl font-bold text-gray-900">📊 Panel de Administración</h1>
+                      <h1 className="text-2xl font-bold text-gray-900">
+                        📊 Panel de Administración
+                      </h1>
                       <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2.5 py-1 rounded-full">
                         Admin
                       </span>
@@ -98,14 +105,25 @@ export default function AdminLayout() {
                 } else if (pathName === "/admin/users") {
                   return (
                     <>
-                      <h1 className="text-2xl font-bold text-gray-900">👥 Gestión de Usuarios</h1>
+                      <h1 className="text-2xl font-bold text-gray-900">
+                        👥 Gestión de Usuarios
+                      </h1>
                       <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2.5 py-1 rounded-full">
                         Admin
                       </span>
                     </>
                   );
                 }
-                return <h1 className="text-2xl font-bold text-gray-900">Panel Administrativo</h1>;
+                return (
+                  <>
+                    <h1 className="text-2xl font-bold text-gray-900">
+                      📚 Gestion de Cursos
+                    </h1>
+                    <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2.5 py-1 rounded-full">
+                      Admin
+                    </span>
+                  </>
+                );
               })()}
             </div>
             <p className="text-sm text-gray-500">
@@ -115,6 +133,8 @@ export default function AdminLayout() {
                   return "Vista general del sistema EduQuest";
                 } else if (pathName === "/admin/users") {
                   return "Administra estudiantes y profesores";
+                } else if (pathName === "/admin/cursos") {
+                  return "Gestiona los cursos disponibles en la plataforma";
                 }
                 return "";
               })()}

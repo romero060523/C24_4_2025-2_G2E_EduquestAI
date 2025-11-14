@@ -35,6 +35,7 @@ public class CorsConfig {
             "Accept",
             "Authorization",
             "X-Profesor-Id",
+            "X-Estudiante-Id",
             "X-Requested-With"
         ));
         

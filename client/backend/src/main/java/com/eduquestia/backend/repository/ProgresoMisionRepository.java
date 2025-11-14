@@ -19,6 +19,12 @@ public interface ProgresoMisionRepository extends JpaRepository<ProgresoMision, 
 
     List<ProgresoMision> findByEstudianteId(UUID estudianteId);
 
+    @Query("SELECT p FROM ProgresoMision p " +
+           "JOIN FETCH p.mision m " +
+           "JOIN FETCH m.curso c " +
+           "WHERE p.estudiante.id = :estudianteId")
+    List<ProgresoMision> findByEstudianteIdWithMisionAndCurso(@Param("estudianteId") UUID estudianteId);
+
     @Query("SELECT COUNT(p) FROM ProgresoMision p WHERE p.mision.id = :misionId AND p.completada = true")
     Long countCompletadosByMision(@Param("misionId") UUID misionId);
 

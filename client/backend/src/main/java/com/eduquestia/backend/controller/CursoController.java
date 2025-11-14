@@ -1,7 +1,9 @@
 package com.eduquestia.backend.controller;
 
 import com.eduquestia.backend.entity.Curso;
+import com.eduquestia.backend.entity.Inscripcion;
 import com.eduquestia.backend.repository.CursoRepository;
+import com.eduquestia.backend.repository.InscripcionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,7 +11,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
+/**
+ * Controlador de Curso - SOLO CONSULTAS
+ * Los cursos son gestionados por el admin-backend (Django)
+ * Este controlador solo proporciona acceso de lectura para el client-backend
+ * Para crear/editar/eliminar cursos, usar el admin-backend
+ */
 @RestController
 @RequestMapping("/cursos")
 @RequiredArgsConstructor
@@ -17,6 +27,21 @@ import java.util.Map;
 public class CursoController {
 
     private final CursoRepository cursoRepository;
+    private final InscripcionRepository inscripcionRepository;
+
+    /**
+     * Lista los cursos de un estudiante basado en sus inscripciones
+     */
+    @GetMapping("/por-estudiante/{estudianteId}")
+    public ResponseEntity<List<Curso>> listarCursosPorEstudiante(@PathVariable UUID estudianteId) {
+        List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteId(estudianteId);
+        List<Curso> cursos = inscripciones.stream()
+                .map(Inscripcion::getCurso)
+                .filter(Curso::getActivo)
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(cursos);
+    }
 
     /**
      * Lista todos los cursos activos
@@ -48,5 +73,47 @@ public class CursoController {
         response.put("message", "Cursos obtenidos exitosamente");
         
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Obtiene un curso por su ID
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> obtenerCursoPorId(@PathVariable UUID id) {
+        return cursoRepository.findById(id)
+            .map(curso -> {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("data", curso);
+                response.put("message", "Curso encontrado");
+                return ResponseEntity.ok(response);
+            })
+            .orElseGet(() -> {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "Curso no encontrado");
+                return ResponseEntity.notFound().build();
+            });
+    }
+
+    /**
+     * Obtiene un curso por su código
+     */
+    @GetMapping("/codigo/{codigoCurso}")
+    public ResponseEntity<Map<String, Object>> obtenerCursoPorCodigo(@PathVariable String codigoCurso) {
+        return cursoRepository.findByCodigoCurso(codigoCurso)
+            .map(curso -> {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("data", curso);
+                response.put("message", "Curso encontrado");
+                return ResponseEntity.ok(response);
+            })
+            .orElseGet(() -> {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "Curso no encontrado");
+                return ResponseEntity.notFound().build();
+            });
     }
 }

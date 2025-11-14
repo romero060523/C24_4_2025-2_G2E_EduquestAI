@@ -7,14 +7,16 @@ import MisionesPage from "./pages/MisionesPage";
 import EstudiantesPage from "./pages/profesor/EstudiantesPage";
 import ReportesPage from "./pages/profesor/ReportesPage";
 import RecursosPage from "./pages/profesor/RecursosPage";
+import ProgresoEstudiantesPage from "./pages/profesor/ProgresoEstudiantesPage";
+import RankingGrupoPage from "./pages/profesor/RankingGrupoPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardEstudiante from "./pages/estudiante/DashboardEstudiante";
 import CursosEstudiante from "./pages/estudiante/CursosEstudiante";
 import MisionesEstudiante from "./pages/estudiante/MisionesEstudiante";
 import RecompensasEstudiante from "./pages/estudiante/RecompensasEstudiante";
-import RankingEstudiante from "./pages/estudiante/RankingEstudiante";
-import PerfilEstudiante from "./pages/estudiante/PerfilEstudiante";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RankingPage from "./pages/estudiante/RankingPage";
+import PerfilGamificado from "./pages/estudiante/PerfilGamificado";
 
 function App() {
   return (
@@ -35,6 +37,8 @@ function App() {
         <Route path="cursos" element={<CursosPage />} />
         <Route path="misiones" element={<MisionesPage />} />
         <Route path="estudiantes" element={<EstudiantesPage />} />
+        <Route path="progreso" element={<ProgresoEstudiantesPage />} />
+        <Route path="ranking" element={<RankingGrupoPage />} />
         <Route path="reportes" element={<ReportesPage />} />
         <Route path="recursos" element={<RecursosPage />} />
 
@@ -55,8 +59,8 @@ function App() {
         <Route path="cursos" element={<CursosEstudiante />} />
         <Route path="misiones" element={<MisionesEstudiante />} />
         <Route path="recompensas" element={<RecompensasEstudiante />} />
-        <Route path="ranking" element={<RankingEstudiante />} />
-        <Route path="perfil" element={<PerfilEstudiante />} />
+        <Route path="ranking" element={<RankingPage />} />
+        <Route path="perfil" element={<PerfilGamificado />} />
 
         {/* Redirección por defecto */}
         <Route index element={<Navigate to="inicio" replace />} />

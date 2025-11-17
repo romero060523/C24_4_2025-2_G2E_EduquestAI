@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'apps.users',
     'apps.cursos',
+    'apps.gamificacion',
 ]
 
 MIDDLEWARE = [
@@ -196,6 +197,6 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': os.getenv('SECRET_KEY'),
+    'SIGNING_KEY': SECRET_KEY,  # Usar SECRET_KEY definido arriba
     'AUTH_HEADER_TYPES': ('Bearer',),
 }

@@ -310,7 +310,7 @@ class ReportesViewSet(viewsets.ViewSet):
             cursos_mas_activos = list(
                 Curso.objects.filter(activo=True)
                 .annotate(
-                    total_estudiantes=Count('inscripciones', filter=Q(inscripciones__activo=True))
+                    total_estudiantes=Count('inscripciones', filter=Q(inscripciones__estado='activo'))
                 )
                 .order_by('-total_estudiantes')[:5]
                 .values('id', 'nombre', 'codigo_curso', 'total_estudiantes')
@@ -504,7 +504,7 @@ class ReportesViewSet(viewsets.ViewSet):
                         'misiones_completadas': misiones_completadas,
                         'logros_obtenidos': logros_obtenidos,
                         'cursos_inscritos': Inscripcion.objects.filter(
-                            estudiante=estudiante, activo=True
+                            estudiante=estudiante, estado='activo'
                         ).count(),
                         'ultima_actividad': estudiante.ultimo_acceso,
                     })
@@ -550,7 +550,7 @@ class ReportesViewSet(viewsets.ViewSet):
             ]
         else:
             for curso in cursos:
-                inscripciones_activas = Inscripcion.objects.filter(curso=curso, activo=True)
+                inscripciones_activas = Inscripcion.objects.filter(curso=curso, estado='activo')
                 total_estudiantes = inscripciones_activas.count()
                 
                 # Obtener profesor del curso

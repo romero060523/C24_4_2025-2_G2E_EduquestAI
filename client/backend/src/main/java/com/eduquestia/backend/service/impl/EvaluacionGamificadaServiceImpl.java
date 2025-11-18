@@ -438,6 +438,7 @@ public class EvaluacionGamificadaServiceImpl implements EvaluacionGamificadaServ
         List<EvaluacionGamificada> evaluaciones = evaluacionRepository.findByCursoId(cursoId);
         
         return evaluaciones.stream()
+                .filter(EvaluacionGamificada::getActivo) // ✅ FILTRAR SOLO ACTIVAS
                 .map(this::convertirAResponse)
                 .collect(Collectors.toList());
     }
@@ -463,6 +464,7 @@ public class EvaluacionGamificadaServiceImpl implements EvaluacionGamificadaServ
         List<EvaluacionGamificada> evaluaciones = evaluacionRepository.findByProfesorCursos(cursosIds);
         
         return evaluaciones.stream()
+                .filter(EvaluacionGamificada::getActivo) // ✅ FILTRAR SOLO ACTIVAS
                 .map(this::convertirAResponse)
                 .collect(Collectors.toList());
     }

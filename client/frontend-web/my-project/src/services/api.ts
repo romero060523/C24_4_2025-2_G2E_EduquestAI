@@ -12,11 +12,20 @@ import type {
   Curso,
   MisionProgresoResponse,
   RankingResponse,
+  ConfiguracionAlertaRequest,
+  AlertaRendimiento,
+  ConfiguracionAlertaResponse,
+  EvaluacionGamificadaResponse,
+  CrearEvaluacionRequest,
+  ResponderEvaluacionRequest,
+  ResultadoEvaluacionResponse,
+  OtorgarRecompensaRequest,
+  RecompensaManualResponse,
 } from "../types";
 
 // Configuración base de axios
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
+  import.meta.env.VITE_API_URL || "http://localhost:8081/api/v1";
 
 class ApiService {
   private api: AxiosInstance;
@@ -38,12 +47,16 @@ class ApiService {
           config.headers["X-Profesor-Id"] = profesorId;
         }
         // Header temporal de estudiante
-        const estudianteId = localStorage.getItem("estudianteId") || localStorage.getItem("userId");
+        const estudianteId =
+          localStorage.getItem("estudianteId") ||
+          localStorage.getItem("userId");
         if (estudianteId) {
           config.headers["X-Estudiante-Id"] = estudianteId;
         }
         // JWT auth si la tienes
-        const token = localStorage.getItem("access_token") || localStorage.getItem("accessToken");
+        const token =
+          localStorage.getItem("access_token") ||
+          localStorage.getItem("accessToken");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -156,19 +169,28 @@ class ApiService {
 
   async listarCursosPorProfesor(profesorId: string): Promise<Curso[]> {
     try {
-      console.log('🔍 API: Solicitando cursos para profesorId:', profesorId);
+      console.log("🔍 API: Solicitando cursos para profesorId:", profesorId);
       const response = await this.api.get(`/cursos/profesor/${profesorId}`);
-      console.log('📥 API: Respuesta completa del backend:', response.data);
+      console.log("📥 API: Respuesta completa del backend:", response.data);
       // El backend devuelve: { success: true, data: [...], message: "..." }
       const data = response.data?.data || response.data;
-      console.log('📦 API: Datos extraídos:', data);
+      console.log("📦 API: Datos extraídos:", data);
       const cursos = Array.isArray(data) ? data : [];
-      console.log('✅ API: Cursos procesados:', cursos);
+      console.log("✅ API: Cursos procesados:", cursos);
       return cursos;
     } catch (error) {
-      console.error('❌ API: Error en listarCursosPorProfesor:', error);
+      console.error("❌ API: Error en listarCursosPorProfesor:", error);
       throw error;
     }
+  }
+
+  // Alias para obtener cursos del profesor actual
+  async getMisCursos(): Promise<Curso[]> {
+    const profesorId = localStorage.getItem("profesorId");
+    if (!profesorId) {
+      throw new Error("No hay sesión de profesor activa");
+    }
+    return this.listarCursosPorProfesor(profesorId);
   }
 
   async crearCurso(curso: {
@@ -185,21 +207,28 @@ class ApiService {
 
   async listarCursosPorEstudiante(estudianteId: string): Promise<Curso[]> {
     try {
-      console.log('🔍 API: Solicitando cursos para estudianteId:', estudianteId);
-      const response = await this.api.get(`/cursos/por-estudiante/${estudianteId}`);
+      console.log(
+        "🔍 API: Solicitando cursos para estudianteId:",
+        estudianteId
+      );
+      const response = await this.api.get(
+        `/cursos/por-estudiante/${estudianteId}`
+      );
       const data = response.data?.data || response.data;
       const cursos = Array.isArray(data) ? data : [];
-      console.log('✅ API: Cursos del estudiante:', cursos);
+      console.log("✅ API: Cursos del estudiante:", cursos);
       return cursos;
     } catch (error) {
-      console.error('❌ API: Error en listarCursosPorEstudiante:', error);
+      console.error("❌ API: Error en listarCursosPorEstudiante:", error);
       throw error;
     }
   }
 
   // ==================== MISIONES ESTUDIANTE ====================
 
-  async listarMisionesPorEstudiante(estudianteId: string): Promise<MisionEstudianteResponse[]> {
+  async listarMisionesPorEstudiante(
+    estudianteId: string
+  ): Promise<MisionEstudianteResponse[]> {
     const response = await this.api.get(`/misiones/estudiante/${estudianteId}`);
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : [];
@@ -209,24 +238,33 @@ class ApiService {
     misionId: string,
     request: CompletarMisionRequest
   ): Promise<MisionEstudianteResponse> {
-    const response = await this.api.post(`/misiones/${misionId}/completar`, request);
+    const response = await this.api.post(
+      `/misiones/${misionId}/completar`,
+      request
+    );
     return response.data?.data || response.data;
   }
 
   async obtenerPuntosTotalesEstudiante(estudianteId: string): Promise<number> {
-    const response = await this.api.get(`/misiones/estudiante/${estudianteId}/puntos`);
+    const response = await this.api.get(
+      `/misiones/estudiante/${estudianteId}/puntos`
+    );
     return response.data?.data || 0;
   }
 
   // ==================== GAMIFICACIÓN ====================
 
   async obtenerPerfilGamificado(estudianteId: string) {
-    const response = await this.api.get(`/gamificacion/estudiante/${estudianteId}/perfil`);
+    const response = await this.api.get(
+      `/gamificacion/estudiante/${estudianteId}/perfil`
+    );
     return response.data?.data || response.data;
   }
 
   async obtenerRankingPorCurso(cursoId: string) {
-    const response = await this.api.get(`/gamificacion/ranking/curso/${cursoId}`);
+    const response = await this.api.get(
+      `/gamificacion/ranking/curso/${cursoId}`
+    );
     return response.data?.data || response.data;
   }
 
@@ -237,14 +275,20 @@ class ApiService {
 
   // ==================== CURSOS - ASIGNAR ESTUDIANTES ====================
 
-  async asignarEstudiantesACurso(cursoId: string, estudiantesIds: string[]): Promise<{
+  async asignarEstudiantesACurso(
+    cursoId: string,
+    estudiantesIds: string[]
+  ): Promise<{
     asignados: number;
     yaInscritos: number;
     totalProcesados: number;
   }> {
-    const response = await this.api.post(`/cursos/${cursoId}/asignar-estudiantes`, {
-      estudiantesIds,
-    });
+    const response = await this.api.post(
+      `/cursos/${cursoId}/asignar-estudiantes`,
+      {
+        estudiantesIds,
+      }
+    );
     return response.data?.data || response.data;
   }
 
@@ -262,14 +306,21 @@ class ApiService {
     totalCursos: number;
     totalEstudiantes: number;
   }> {
-    const response = await this.api.get(`/cursos/profesor/${profesorId}/estadisticas`);
+    const response = await this.api.get(
+      `/cursos/profesor/${profesorId}/estadisticas`
+    );
     return response.data?.data || { totalCursos: 0, totalEstudiantes: 0 };
   }
 
   // ==================== PROGRESO DE ESTUDIANTES ====================
 
-  async obtenerProgresoMision(misionId: string): Promise<MisionProgresoResponse> {
-    const profesorId = localStorage.getItem("profesorId") || localStorage.getItem("userId") || "";
+  async obtenerProgresoMision(
+    misionId: string
+  ): Promise<MisionProgresoResponse> {
+    const profesorId =
+      localStorage.getItem("profesorId") ||
+      localStorage.getItem("userId") ||
+      "";
     const response = await this.api.get(`/misiones/${misionId}/progreso`, {
       headers: {
         "X-Profesor-Id": profesorId,
@@ -280,9 +331,193 @@ class ApiService {
 
   // ==================== RANKING PARA PROFESOR ====================
 
-  async obtenerRankingPorCursoProfesor(cursoId: string): Promise<RankingResponse> {
-    const response = await this.api.get(`/gamificacion/ranking/curso/${cursoId}`);
+  async obtenerRankingPorCursoProfesor(
+    cursoId: string
+  ): Promise<RankingResponse> {
+    const response = await this.api.get(
+      `/gamificacion/ranking/curso/${cursoId}`
+    );
     return response.data?.data || response.data;
+  }
+
+  // ==================== ALERTAS ====================
+
+  async configurarAlertas(config: ConfiguracionAlertaRequest): Promise<string> {
+    const response = await this.api.post<{
+      success: boolean;
+      data: string;
+      message: string;
+    }>("/alertas/configurar", config);
+    return response.data.data;
+  }
+
+  async obtenerAlertasCurso(cursoId: string): Promise<AlertaRendimiento[]> {
+    const response = await this.api.get(`/alertas/curso/${cursoId}`);
+    return response.data?.data || [];
+  }
+
+  async obtenerAlertasEstudiante(
+    estudianteId: string
+  ): Promise<AlertaRendimiento[]> {
+    const response = await this.api.get(`/alertas/estudiante/${estudianteId}`);
+    return response.data?.data || [];
+  }
+
+  async resolverAlerta(alertaId: string): Promise<void> {
+    await this.api.patch(`/alertas/${alertaId}/resolver`);
+  }
+
+  async ignorarAlerta(alertaId: string): Promise<void> {
+    await this.api.patch(`/alertas/${alertaId}/ignorar`);
+  }
+
+  async evaluarCursoManualmente(cursoId: string): Promise<void> {
+    await this.api.post(`/alertas/evaluar/${cursoId}`);
+  }
+
+  async obtenerConfiguracionAlerta(
+    cursoId: string
+  ): Promise<ConfiguracionAlertaResponse | null> {
+    const response = await this.api.get(
+      `/alertas/configuracion/curso/${cursoId}`
+    );
+    return response.data?.data || null;
+  }
+
+  // ==================== EVALUACIONES GAMIFICADAS ====================
+
+  async crearEvaluacionGamificada(
+    request: CrearEvaluacionRequest
+  ): Promise<EvaluacionGamificadaResponse> {
+    const response = await this.api.post("/evaluaciones-gamificadas", request);
+    return response.data?.data || response.data;
+  }
+
+  async listarEvaluacionesPorCurso(
+    cursoId: string
+  ): Promise<EvaluacionGamificadaResponse[]> {
+    const response = await this.api.get(
+      `/evaluaciones-gamificadas/curso/${cursoId}`
+    );
+    const data = response.data?.data || response.data;
+    return Array.isArray(data) ? data : [];
+  }
+
+  async listarEvaluacionesProfesor(): Promise<EvaluacionGamificadaResponse[]> {
+    const response = await this.api.get("/evaluaciones-gamificadas/profesor");
+    const data = response.data?.data || response.data;
+    return Array.isArray(data) ? data : [];
+  }
+
+  async listarEvaluacionesEstudiante(): Promise<
+    EvaluacionGamificadaResponse[]
+  > {
+    const response = await this.api.get("/evaluaciones-gamificadas/estudiante");
+    const data = response.data?.data || response.data;
+    return Array.isArray(data) ? data : [];
+  }
+
+  async obtenerEvaluacionPorMision(
+    misionId: string
+  ): Promise<EvaluacionGamificadaResponse> {
+    const response = await this.api.get(
+      `/evaluaciones-gamificadas/mision/${misionId}`
+    );
+    return response.data?.data || response.data;
+  }
+
+  async obtenerEvaluacionPorId(
+    evaluacionId: string
+  ): Promise<EvaluacionGamificadaResponse> {
+    const response = await this.api.get(
+      `/evaluaciones-gamificadas/${evaluacionId}`
+    );
+    return response.data?.data || response.data;
+  }
+
+  async responderEvaluacion(
+    request: ResponderEvaluacionRequest
+  ): Promise<ResultadoEvaluacionResponse> {
+    const response = await this.api.post(
+      "/evaluaciones-gamificadas/responder",
+      request
+    );
+    return response.data?.data || response.data;
+  }
+
+  async obtenerIntentosRestantes(evaluacionId: string): Promise<number> {
+    const response = await this.api.get(
+      `/evaluaciones-gamificadas/${evaluacionId}/intentos-restantes`
+    );
+    return response.data?.data || response.data;
+  }
+
+  async obtenerResultadosEstudiante(
+    evaluacionId: string
+  ): Promise<ResultadoEvaluacionResponse[]> {
+    const response = await this.api.get(
+      `/evaluaciones-gamificadas/${evaluacionId}/resultados/estudiante`
+    );
+    return response.data?.data || response.data;
+  }
+
+  async eliminarEvaluacion(evaluacionId: string): Promise<void> {
+    await this.api.delete(`/evaluaciones-gamificadas/${evaluacionId}`);
+  }
+
+  // ==================== RECOMPENSAS MANUALES ====================
+  // Historia de Usuario #12: Recompensas manuales
+
+  async otorgarRecompensaManual(request: OtorgarRecompensaRequest): Promise<RecompensaManualResponse> {
+    const response = await this.api.post<{
+      success: boolean;
+      data: RecompensaManualResponse;
+      message: string;
+    }>("/gamificacion/recompensas/manual", request);
+    return response.data.data;
+  }
+
+  async obtenerRecompensasPorEstudiante(estudianteId: string): Promise<RecompensaManualResponse[]> {
+    const response = await this.api.get<{
+      success: boolean;
+      data: RecompensaManualResponse[];
+      message: string;
+    }>(`/gamificacion/recompensas/estudiante/${estudianteId}`);
+    return response.data.data;
+  }
+
+  async obtenerRecompensasPorProfesor(profesorId: string): Promise<RecompensaManualResponse[]> {
+    const response = await this.api.get<{
+      success: boolean;
+      data: RecompensaManualResponse[];
+      message: string;
+    }>(`/gamificacion/recompensas/profesor/${profesorId}`);
+    return response.data.data;
+  }
+
+  /**
+   * Subir un archivo (PDF, imagen o video)
+   */
+  async subirArchivo(archivo: File, tipo: "PDF" | "IMAGEN" | "VIDEO"): Promise<string> {
+    const formData = new FormData();
+    formData.append("archivo", archivo);
+    formData.append("tipo", tipo);
+
+    const response = await this.api.post<{
+      success: boolean;
+      data: string;
+      message: string;
+    }>("/archivos/subir", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Error al subir el archivo");
+    }
+
+    return response.data.data;
   }
 }
 

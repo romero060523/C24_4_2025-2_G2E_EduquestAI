@@ -1,15 +1,37 @@
 // Tipos y enums para entidades y DTOs
 
-export type TipoMision = 'INDIVIDUAL' | 'GRUPAL';
-export type CategoriaMision = 'LECTURA' | 'EJERCICIO' | 'PROYECTO' | 'QUIZ' | 'DESAFIO';
-export type DificultadMision = 'FACIL' | 'MEDIO' | 'DIFICIL' | 'EXPERTO';
+export type TipoMision = "INDIVIDUAL" | "GRUPAL";
+export type CategoriaMision =
+  | "LECTURA"
+  | "EJERCICIO"
+  | "PROYECTO"
+  | "QUIZ"
+  | "DESAFIO";
+export type DificultadMision = "FACIL" | "MEDIO" | "DIFICIL" | "EXPERTO";
+export type TemaVisual =
+  | "MEDIEVAL"
+  | "ANIME"
+  | "ESPACIAL"
+  | "FANTASIA"
+  | "CIENCIA"
+  | "NATURALEZA"
+  | "URBANO"
+  | "OCEANO"
+  | "DEFAULT";
+
+export type TipoAlerta =
+  | "INACTIVIDAD"
+  | "BAJO_RENDIMIENTO"
+  | "MISIONES_PENDIENTES"
+  | "DEBAJO_PROMEDIO";
+export type EstadoAlerta = "ACTIVA" | "RESUELTA" | "IGNORADA";
 
 export interface Usuario {
   id: string;
   username: string;
   email: string;
   nombreCompleto: string;
-  rol: 'ADMINISTRADOR' | 'PROFESOR' | 'ESTUDIANTE';
+  rol: "ADMINISTRADOR" | "PROFESOR" | "ESTUDIANTE";
   avatarUrl?: string;
   activo: boolean;
   fechaCreacion: string;
@@ -37,12 +59,15 @@ export interface Mision {
   dificultad: DificultadMision;
   puntosRecompensa: number;
   experienciaRecompensa: number;
+  monedasRecompensa?: number;
+  semanaClase?: number;
   fechaInicio: string;
   fechaLimite: string;
   activo: boolean;
   fechaCreacion: string;
   fechaActualizacion: string;
   requisitosPrevios?: string;
+  contenidos?: ContenidoMision[];
   profesor?: Usuario;
   curso?: Curso;
 }
@@ -53,12 +78,26 @@ export interface MisionListResponse {
   descripcionResumida: string;
   categoria: CategoriaMision;
   dificultad: DificultadMision;
+  temaVisual?: TemaVisual;
   puntosRecompensa: number;
   fechaLimite: string;
   activo: boolean;
+  cursoId: string; // ID del curso al que pertenece
   cursoNombre: string;
   estudiantesCompletados: number;
   totalEstudiantes: number;
+}
+
+// Tipos para contenido de misiones
+export type TipoContenido = 'TEXTO' | 'VIDEO' | 'PDF' | 'LINK' | 'IMAGEN';
+
+export interface ContenidoMision {
+  id?: string;
+  tipoContenido: TipoContenido;
+  titulo?: string;
+  contenidoUrl?: string;
+  contenidoTexto?: string;
+  orden: number;
 }
 
 // DTOs con enums en mayúscula y nombres/campos correctos
@@ -70,10 +109,14 @@ export interface CrearMisionDTO {
   dificultad: DificultadMision;
   puntosRecompensa: number;
   experienciaRecompensa: number;
+  monedasRecompensa: number;
+  semanaClase?: number;
+  temaVisual?: TemaVisual;
   fechaInicio: string;
   fechaLimite: string;
   cursoId: string;
   requisitosPrevios?: string;
+  contenidos?: ContenidoMision[];
   // activo?: boolean; // Opcional si tu backend lo soporta
 }
 
@@ -88,6 +131,7 @@ export interface ActualizarMisionDTO {
   fechaInicio?: string;
   fechaLimite?: string;
   requisitosPrevios?: string;
+  contenidos?: ContenidoMision[];
   activo?: boolean;
 }
 
@@ -131,6 +175,9 @@ export interface MisionEstudianteResponse {
   dificultad: DificultadMision;
   puntosRecompensa: number;
   experienciaRecompensa: number;
+  monedasRecompensa?: number;
+  semanaClase?: number;
+  temaVisual?: TemaVisual;
   fechaInicio: string;
   fechaLimite: string;
   activo: boolean;
@@ -138,7 +185,12 @@ export interface MisionEstudianteResponse {
   porcentajeCompletado: number;
   completada: boolean;
   fechaCompletado?: string;
-  estadoEntrega: 'PENDIENTE' | 'ENVIADA' | 'REVISANDO' | 'CALIFICADA' | 'RECHAZADA';
+  estadoEntrega:
+    | "PENDIENTE"
+    | "ENVIADA"
+    | "REVISANDO"
+    | "CALIFICADA"
+    | "RECHAZADA";
   puntosObtenidos: number;
   ultimaActividad: string;
 }
@@ -219,3 +271,191 @@ export interface MisionProgresoResponse {
   estudiantes: EstudianteProgresoResponse[];
 }
 
+// ==================== ALERTAS ====================
+
+export interface ConfiguracionAlertaRequest {
+  cursoId: string;
+  diasInactividad?: number;
+  porcentajeCompletitudMinimo?: number;
+  puntosDebajoPromedio?: boolean;
+  misionesPendientesMinimo?: number;
+}
+
+export interface ConfiguracionAlertaResponse {
+  id: string;
+  cursoId: string;
+  cursoNombre: string;
+  diasInactividad?: number;
+  porcentajeCompletitudMinimo?: number;
+  puntosDebajoPromedio?: boolean;
+  misionesPendientesMinimo?: number;
+  activo: boolean;
+  fechaCreacion: string;
+}
+
+export interface AlertaRendimiento {
+  id: string;
+  estudianteId: string;
+  estudianteNombre: string;
+  estudianteEmail: string;
+  cursoId: string;
+  cursoNombre: string;
+  tipo: TipoAlerta;
+  descripcion: string;
+  datosContexto: string;
+  estado: EstadoAlerta;
+  fechaCreacion: string;
+}
+
+export interface DatosContextoAlerta {
+  diasInactivo?: number;
+  ultimaActividad?: string;
+  porcentajeCompletitud?: number;
+  misionesCompletadas?: number;
+  totalMisiones?: number;
+  puntosEstudiante?: number;
+  promedioGrupo?: number;
+  misionesPendientes?: number;
+}
+
+// ==================== EVALUACIONES GAMIFICADAS ====================
+
+export type TipoPregunta =
+  | "OPCION_MULTIPLE"
+  | "VERDADERO_FALSO"
+  | "ARRASTRAR_SOLTAR"
+  | "COMPLETAR_ESPACIOS"
+  | "ORDENAR"
+  | "EMPAREJAR"
+  | "SELECCION_MULTIPLE";
+
+export interface OpcionRespuestaResponse {
+  id: string;
+  texto: string;
+  esCorrecta: boolean;
+  orden: number;
+  imagenUrl?: string;
+  feedback?: string;
+}
+
+export interface PreguntaResponse {
+  id: string;
+  enunciado: string;
+  tipoPregunta: TipoPregunta;
+  puntos: number;
+  orden: number;
+  imagenUrl?: string;
+  explicacion?: string;
+  opciones: OpcionRespuestaResponse[];
+}
+
+export interface EvaluacionGamificadaResponse {
+  id: string;
+  misionId: string;
+  misionTitulo: string;
+  cursoId: string;
+  cursoNombre: string;
+  titulo: string;
+  descripcion?: string;
+  tiempoLimiteMinutos?: number;
+  intentosPermitidos: number;
+  mostrarResultadosInmediato: boolean;
+  puntosPorPregunta: number;
+  puntosBonusTiempo: number;
+  activo: boolean;
+  preguntas: PreguntaResponse[];
+  fechaCreacion: string;
+  fechaActualizacion?: string;
+  // Campos específicos del estudiante (solo cuando se consulta para un estudiante)
+  completada?: boolean; // Si el estudiante ya completó la evaluación
+  intentosUsados?: number; // Cuántos intentos ha usado el estudiante
+  mejorPuntuacion?: number; // Mejor puntuación obtenida
+  mejorPorcentaje?: number; // Mejor porcentaje obtenido
+  fechaCompletado?: string; // Fecha en que completó (si ya la completó)
+}
+
+export interface ResultadoEvaluacionResponse {
+  id: string;
+  evaluacionId: string;
+  estudianteId: string;
+  estudianteNombre: string;
+  puntosTotales: number;
+  puntosMaximos: number;
+  puntosBonus: number;
+  porcentaje: number;
+  preguntasCorrectas: number;
+  preguntasTotales: number;
+  tiempoTotalSegundos?: number;
+  intentoNumero: number;
+  completada: boolean;
+  fechaCompletado: string;
+}
+
+export interface CrearOpcionRequest {
+  texto: string;
+  esCorrecta?: boolean;
+  orden?: number;
+  imagenUrl?: string;
+  feedback?: string;
+}
+
+export interface CrearPreguntaRequest {
+  enunciado: string;
+  tipoPregunta: TipoPregunta;
+  puntos?: number;
+  orden?: number;
+  imagenUrl?: string;
+  explicacion?: string;
+  opciones: CrearOpcionRequest[];
+}
+
+export interface CrearEvaluacionRequest {
+  misionId?: string; // Ahora OPCIONAL: solo si quieres asociar a una misión específica
+  cursoId: string; // Ahora REQUERIDO: toda evaluación pertenece a un curso
+  titulo: string;
+  descripcion?: string;
+  tiempoLimiteMinutos?: number;
+  intentosPermitidos?: number;
+  mostrarResultadosInmediato?: boolean;
+  puntosPorPregunta?: number;
+  puntosBonusTiempo?: number;
+  preguntas: CrearPreguntaRequest[];
+}
+
+export interface RespuestaRequest {
+  preguntaId: string;
+  opcionId?: string;
+  respuestaTexto?: string;
+  tiempoRespuestaSegundos?: number;
+}
+
+export interface ResponderEvaluacionRequest {
+  evaluacionId: string;
+  respuestas: RespuestaRequest[];
+  tiempoTotalSegundos?: number;
+}
+
+// ==================== RECOMPENSAS MANUALES ====================
+// Historia de Usuario #12: Recompensas manuales
+
+export interface OtorgarRecompensaRequest {
+  estudianteId: string;
+  cursoId: string;
+  puntos: number;
+  motivo: string;
+  observaciones?: string;
+}
+
+export interface RecompensaManualResponse {
+  id: string;
+  profesorId: string;
+  profesorNombre: string;
+  estudianteId: string;
+  estudianteNombre: string;
+  cursoId: string;
+  cursoNombre: string;
+  puntos: number;
+  motivo: string;
+  observaciones?: string;
+  fechaOtorgamiento: string;
+}

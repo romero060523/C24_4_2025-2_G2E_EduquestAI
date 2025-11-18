@@ -1,10 +1,15 @@
 package com.eduquestia.backend.service.impl;
 
+import com.eduquestia.backend.dto.request.OtorgarRecompensaRequest;
 import com.eduquestia.backend.dto.response.LogroResponse;
 import com.eduquestia.backend.dto.response.PerfilGamificadoResponse;
 import com.eduquestia.backend.dto.response.RankingEstudianteResponse;
 import com.eduquestia.backend.dto.response.RankingResponse;
+import com.eduquestia.backend.dto.response.RecompensaManualResponse;
 import com.eduquestia.backend.entity.*;
+import com.eduquestia.backend.exceptions.ResourceNotFoundException;
+import com.eduquestia.backend.exceptions.UnauthorizedException;
+import com.eduquestia.backend.exceptions.ValidationException;
 import com.eduquestia.backend.repository.*;
 import com.eduquestia.backend.service.GamificacionService;
 import com.eduquestia.backend.service.MisionService;
@@ -30,14 +35,17 @@ public class GamificacionServiceImpl implements GamificacionService {
     private final InscripcionRepository inscripcionRepository;
     private final MisionService misionService;
     private final CursoRepository cursoRepository;
+    private final RecompensaManualRepository recompensaManualRepository;
 
     @Override
     @Transactional(readOnly = true)
     public PerfilGamificadoResponse obtenerPerfilGamificado(UUID estudianteId) {
         log.info("Obteniendo perfil gamificado para estudiante: {}", estudianteId);
 
-        // Obtener puntos totales
-        Integer puntosTotales = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+        // Obtener puntos totales (misiones + recompensas manuales)
+        Integer puntosMisiones = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+        Integer puntosRecompensas = obtenerPuntosRecompensasManuales(estudianteId);
+        Integer puntosTotales = puntosMisiones + puntosRecompensas;
 
         // Calcular nivel
         Integer nivel = calcularNivel(puntosTotales);
@@ -95,7 +103,9 @@ public class GamificacionServiceImpl implements GamificacionService {
     public void verificarYOtorgarLogros(UUID estudianteId) {
         log.info("Verificando logros para estudiante: {}", estudianteId);
 
-        Integer puntosTotales = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+        Integer puntosMisiones = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+        Integer puntosRecompensas = obtenerPuntosRecompensasManuales(estudianteId);
+        Integer puntosTotales = puntosMisiones + puntosRecompensas;
         List<ProgresoMision> progresos = progresoRepository.findByEstudianteId(estudianteId);
         Integer misionesCompletadas = (int) progresos.stream()
                 .filter(ProgresoMision::getCompletada)
@@ -172,7 +182,9 @@ public class GamificacionServiceImpl implements GamificacionService {
         for (Inscripcion inscripcion : inscripciones) {
             UUID estudianteId = inscripcion.getEstudiante().getId();
             
-            Integer puntosTotales = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+            Integer puntosMisiones = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+        Integer puntosRecompensas = obtenerPuntosRecompensasManuales(estudianteId);
+        Integer puntosTotales = puntosMisiones + puntosRecompensas;
             Integer nivel = calcularNivel(puntosTotales);
             
             List<ProgresoMision> progresos = progresoRepository.findByEstudianteId(estudianteId);
@@ -226,7 +238,9 @@ public class GamificacionServiceImpl implements GamificacionService {
         for (Usuario estudiante : estudiantes) {
             UUID estudianteId = estudiante.getId();
             
-            Integer puntosTotales = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+            Integer puntosMisiones = misionService.obtenerPuntosTotalesEstudiante(estudianteId);
+        Integer puntosRecompensas = obtenerPuntosRecompensasManuales(estudianteId);
+        Integer puntosTotales = puntosMisiones + puntosRecompensas;
             Integer nivel = calcularNivel(puntosTotales);
             
             List<ProgresoMision> progresos = progresoRepository.findByEstudianteId(estudianteId);
@@ -305,6 +319,128 @@ public class GamificacionServiceImpl implements GamificacionService {
         if (puntos < 2500) return 2500 - puntos;
         if (puntos < 5000) return 5000 - puntos;
         return 0; // Ya es el nivel máximo
+    }
+
+    // ========== MÉTODOS DE RECOMPENSAS MANUALES ==========
+    // Historia de Usuario #12: Recompensas manuales
+
+    @Override
+    public RecompensaManualResponse otorgarRecompensaManual(
+            OtorgarRecompensaRequest request, UUID profesorId) {
+        log.info("Otorgando recompensa manual de {} puntos a estudiante {} por profesor {}",
+                request.getPuntos(), request.getEstudianteId(), profesorId);
+
+        // Validar profesor
+        Usuario profesor = usuarioRepository.findById(profesorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profesor no encontrado con ID: " + profesorId));
+
+        if (!"profesor".equals(profesor.getRol())) {
+            throw new UnauthorizedException("Solo los profesores pueden otorgar recompensas manuales");
+        }
+
+        // Validar estudiante
+        Usuario estudiante = usuarioRepository.findById(request.getEstudianteId())
+                .orElseThrow(() -> new ResourceNotFoundException("Estudiante no encontrado con ID: " + request.getEstudianteId()));
+
+        if (!"estudiante".equals(estudiante.getRol())) {
+            throw new ValidationException("El usuario especificado no es un estudiante");
+        }
+
+        // Validar curso
+        Curso curso = cursoRepository.findById(request.getCursoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado con ID: " + request.getCursoId()));
+
+        // Crear recompensa manual
+        RecompensaManual recompensa = new RecompensaManual();
+        recompensa.setProfesor(profesor);
+        recompensa.setEstudiante(estudiante);
+        recompensa.setCurso(curso);
+        recompensa.setPuntos(request.getPuntos());
+        recompensa.setMotivo(request.getMotivo());
+        recompensa.setObservaciones(request.getObservaciones());
+
+        recompensa = recompensaManualRepository.save(recompensa);
+
+        log.info("Recompensa manual otorgada exitosamente. ID: {}", recompensa.getId());
+
+        // Verificar y otorgar logros después de otorgar recompensa
+        try {
+            verificarYOtorgarLogros(estudiante.getId());
+        } catch (Exception e) {
+            log.warn("Error al verificar logros después de otorgar recompensa: {}", e.getMessage());
+        }
+
+        // Retornar respuesta
+        return RecompensaManualResponse.builder()
+                .id(recompensa.getId())
+                .profesorId(profesor.getId())
+                .profesorNombre(profesor.getNombreCompleto())
+                .estudianteId(estudiante.getId())
+                .estudianteNombre(estudiante.getNombreCompleto())
+                .cursoId(curso.getId())
+                .cursoNombre(curso.getNombre())
+                .puntos(recompensa.getPuntos())
+                .motivo(recompensa.getMotivo())
+                .observaciones(recompensa.getObservaciones())
+                .fechaOtorgamiento(recompensa.getFechaOtorgamiento())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecompensaManualResponse> obtenerRecompensasManualesPorEstudiante(UUID estudianteId) {
+        log.info("Obteniendo recompensas manuales del estudiante: {}", estudianteId);
+
+        List<RecompensaManual> recompensas = recompensaManualRepository
+                .findByEstudianteIdOrderByFechaOtorgamientoDesc(estudianteId);
+
+        return recompensas.stream()
+                .map(r -> RecompensaManualResponse.builder()
+                        .id(r.getId())
+                        .profesorId(r.getProfesor().getId())
+                        .profesorNombre(r.getProfesor().getNombreCompleto())
+                        .estudianteId(r.getEstudiante().getId())
+                        .estudianteNombre(r.getEstudiante().getNombreCompleto())
+                        .cursoId(r.getCurso() != null ? r.getCurso().getId() : null)
+                        .cursoNombre(r.getCurso() != null ? r.getCurso().getNombre() : null)
+                        .puntos(r.getPuntos())
+                        .motivo(r.getMotivo())
+                        .observaciones(r.getObservaciones())
+                        .fechaOtorgamiento(r.getFechaOtorgamiento())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecompensaManualResponse> obtenerRecompensasManualesPorProfesor(UUID profesorId) {
+        log.info("Obteniendo recompensas manuales otorgadas por profesor: {}", profesorId);
+
+        List<RecompensaManual> recompensas = recompensaManualRepository
+                .findByProfesorIdOrderByFechaOtorgamientoDesc(profesorId);
+
+        return recompensas.stream()
+                .map(r -> RecompensaManualResponse.builder()
+                        .id(r.getId())
+                        .profesorId(r.getProfesor().getId())
+                        .profesorNombre(r.getProfesor().getNombreCompleto())
+                        .estudianteId(r.getEstudiante().getId())
+                        .estudianteNombre(r.getEstudiante().getNombreCompleto())
+                        .cursoId(r.getCurso() != null ? r.getCurso().getId() : null)
+                        .cursoNombre(r.getCurso() != null ? r.getCurso().getNombre() : null)
+                        .puntos(r.getPuntos())
+                        .motivo(r.getMotivo())
+                        .observaciones(r.getObservaciones())
+                        .fechaOtorgamiento(r.getFechaOtorgamiento())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Integer obtenerPuntosRecompensasManuales(UUID estudianteId) {
+        Integer puntos = recompensaManualRepository.sumPuntosByEstudianteId(estudianteId);
+        return puntos != null ? puntos : 0;
     }
 }
 

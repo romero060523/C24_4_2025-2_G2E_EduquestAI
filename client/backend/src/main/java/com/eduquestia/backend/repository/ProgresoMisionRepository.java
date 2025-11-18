@@ -31,4 +31,24 @@ public interface ProgresoMisionRepository extends JpaRepository<ProgresoMision, 
     @Query("SELECT COUNT(p) FROM ProgresoMision p WHERE p.mision.id = :misionId " +
             "AND p.completada = false AND p.porcentajeCompletado > 0")
     Long countEnProgresoByMision(@Param("misionId") UUID misionId);
+
+    Optional<ProgresoMision> findTopByEstudianteIdOrderByFechaActualizacionDesc(UUID estudianteId);
+
+    // Nuevos métodos para alertas
+    @Query("SELECT COUNT(p) FROM ProgresoMision p WHERE p.estudiante.id = :estudianteId AND p.mision.curso.id = :cursoId")
+    long countByEstudianteIdAndCursoId(@Param("estudianteId") UUID estudianteId, @Param("cursoId") UUID cursoId);
+
+    @Query("SELECT COUNT(p) FROM ProgresoMision p WHERE p.estudiante.id = :estudianteId AND p.mision.curso.id = :cursoId AND p.completada = :completado")
+    long countByEstudianteIdAndCursoIdAndCompletado(
+            @Param("estudianteId") UUID estudianteId,
+            @Param("cursoId") UUID cursoId,
+            @Param("completado") boolean completado);
+
+    @Query("SELECT COALESCE(SUM(p.mision.puntosRecompensa), 0) FROM ProgresoMision p WHERE p.estudiante.id = :estudianteId AND p.mision.curso.id = :cursoId AND p.completada = true")
+    Optional<Integer> sumPuntosByEstudianteIdAndCursoId(
+            @Param("estudianteId") UUID estudianteId,
+            @Param("cursoId") UUID cursoId);
+
+    @Query(value = "SELECT COALESCE(AVG(total_puntos), 0.0) FROM (SELECT SUM(m.puntos_recompensa) as total_puntos FROM grupo_03.progreso_mision p INNER JOIN grupo_03.misiones m ON p.mision_id = m.id WHERE m.curso_id = :cursoId AND p.completada = true GROUP BY p.estudiante_id) as subquery", nativeQuery = true)
+    Optional<Double> avgPuntosByCursoId(@Param("cursoId") UUID cursoId);
 }

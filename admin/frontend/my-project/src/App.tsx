@@ -4,6 +4,8 @@ import AdminLayout from "./layout/AdminLayout";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import Cursos from "./pages/Cursos";
+import ReglasGamificacion from "./pages/ReglasGamificacion";
+import Reportes from "./pages/Reportes";
 import LoginPage from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<Users />} />
           <Route path="cursos" element={<Cursos />} />
+          <Route path="reglas-gamificacion" element={<ReglasGamificacion />} />
+          <Route path="reportes" element={<Reportes />} />
         </Route>
       </Routes>
     </BrowserRouter>

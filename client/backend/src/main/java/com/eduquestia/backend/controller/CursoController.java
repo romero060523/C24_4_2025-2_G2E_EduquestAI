@@ -7,6 +7,7 @@ import com.eduquestia.backend.repository.InscripcionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.lang.NonNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -79,7 +80,7 @@ public class CursoController {
      * Obtiene un curso por su ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> obtenerCursoPorId(@PathVariable UUID id) {
+    public ResponseEntity<Map<String, Object>> obtenerCursoPorId(@PathVariable @NonNull UUID id) {
         return cursoRepository.findById(id)
             .map(curso -> {
                 Map<String, Object> response = new HashMap<>();

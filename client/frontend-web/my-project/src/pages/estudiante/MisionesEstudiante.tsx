@@ -4,11 +4,16 @@ import { useAuth } from "../../hooks/useAuth";
 import type {
   MisionEstudianteResponse,
   CompletarMisionRequest,
+  EvaluacionGamificadaResponse,
+  ResultadoEvaluacionResponse,
 } from "../../types";
+import { getTemaConfig, getTemaImage } from "../../utils/temaUtils";
+import TomarEvaluacionModal from "../../components/estudiante/TomarEvaluacionModal";
 
 const MisionesEstudiante = () => {
   const { usuario } = useAuth();
   const [misiones, setMisiones] = useState<MisionEstudianteResponse[]>([]);
+  const [evaluaciones, setEvaluaciones] = useState<EvaluacionGamificadaResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMision, setSelectedMision] =
@@ -20,10 +25,34 @@ const MisionesEstudiante = () => {
     comentariosEstudiante: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [evaluacionActual, setEvaluacionActual] = useState<EvaluacionGamificadaResponse | null>(null);
+  const [mostrarEvaluacion, setMostrarEvaluacion] = useState(false);
+  const [cargandoEvaluacion, setCargandoEvaluacion] = useState(false);
 
   useEffect(() => {
     loadMisiones();
+    loadEvaluaciones();
   }, []);
+
+  const loadEvaluaciones = async () => {
+    console.log('🔍 [DEBUG] loadEvaluaciones() ejecutándose...');
+    const estudianteId = localStorage.getItem("estudianteId") || localStorage.getItem("userId");
+    console.log('🔍 [DEBUG] estudianteId:', estudianteId);
+    try {
+      console.log('🔍 [DEBUG] Llamando a apiService.listarEvaluacionesEstudiante()...');
+      const result = await apiService.listarEvaluacionesEstudiante();
+      console.log('✅ Evaluaciones del estudiante:', result);
+      console.log('🔍 [DEBUG] Cantidad de evaluaciones:', result?.length || 0);
+      setEvaluaciones(result || []);
+    } catch (e: unknown) {
+      console.error('❌ Error cargando evaluaciones:', e);
+      if (e instanceof Error) {
+        console.error('❌ Mensaje de error:', e.message);
+        console.error('❌ Stack:', e.stack);
+      }
+      setEvaluaciones([]); // Asegurar que siempre sea un array
+    }
+  };
 
   const loadMisiones = async () => {
     setLoading(true);
@@ -45,7 +74,7 @@ const MisionesEstudiante = () => {
     }
   };
 
-  const handleCompletarClick = (mision: MisionEstudianteResponse) => {
+  const handleCompletarClick = async (mision: MisionEstudianteResponse) => {
     if (mision.completada) {
       alert("Esta misión ya fue completada");
       return;
@@ -62,6 +91,32 @@ const MisionesEstudiante = () => {
       return;
     }
 
+    // Si es una misión QUIZ, verificar si tiene evaluación
+    if (mision.categoria === "QUIZ") {
+      setCargandoEvaluacion(true);
+      try {
+        const evaluacion = await apiService.obtenerEvaluacionPorMision(mision.id);
+        if (evaluacion && evaluacion.activo) {
+          // Verificar intentos restantes
+          const intentosRestantes = await apiService.obtenerIntentosRestantes(evaluacion.id);
+          if (intentosRestantes <= 0) {
+            alert("No tienes más intentos disponibles para esta evaluación");
+            setCargandoEvaluacion(false);
+            return;
+          }
+          setEvaluacionActual(evaluacion);
+          setMostrarEvaluacion(true);
+          setCargandoEvaluacion(false);
+          return;
+        }
+      } catch (error: any) {
+        // Si no hay evaluación, continuar con el flujo normal
+        console.log("No se encontró evaluación para esta misión");
+      }
+      setCargandoEvaluacion(false);
+    }
+
+    // Flujo normal para misiones no-QUIZ o QUIZ sin evaluación
     setSelectedMision(mision);
     setFormData({
       contenidoEntrega: "",
@@ -69,6 +124,41 @@ const MisionesEstudiante = () => {
       comentariosEstudiante: "",
     });
     setShowModal(true);
+  };
+
+  const handleEvaluacionCompletada = async (resultado: ResultadoEvaluacionResponse) => {
+    setMostrarEvaluacion(false);
+    setEvaluacionActual(null);
+    await loadMisiones();
+    await loadEvaluaciones();
+    alert(
+      `¡Felicidades! Has completado la evaluación.\nPuntos: ${resultado.puntosTotales}\nPorcentaje: ${resultado.porcentaje.toFixed(1)}%`
+    );
+  };
+
+  const handleTomarEvaluacion = async (evaluacion: EvaluacionGamificadaResponse) => {
+    // Verificar si ya está completada
+    if (evaluacion.completada) {
+      alert("Ya has completado esta evaluación. No puedes tomarla nuevamente.");
+      return;
+    }
+
+    setCargandoEvaluacion(true);
+    try {
+      const intentosRestantes = await apiService.obtenerIntentosRestantes(evaluacion.id);
+      if (intentosRestantes <= 0) {
+        alert("No tienes más intentos disponibles para esta evaluación");
+        setCargandoEvaluacion(false);
+        return;
+      }
+      setEvaluacionActual(evaluacion);
+      setMostrarEvaluacion(true);
+    } catch (error: any) {
+      alert("Error al cargar la evaluación");
+      console.error(error);
+    } finally {
+      setCargandoEvaluacion(false);
+    }
   };
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
@@ -96,6 +186,8 @@ const MisionesEstudiante = () => {
   const isExpired = (fechaLimite: string) => {
     return new Date(fechaLimite) < new Date();
   };
+
+  // getTemaStyles ahora usa getTemaConfig de temaUtils
 
   const getEstadoBadge = (mision: MisionEstudianteResponse) => {
     if (mision.completada) {
@@ -187,6 +279,107 @@ const MisionesEstudiante = () => {
         </p>
       </div>
 
+      {/* Evaluaciones Disponibles */}
+      {evaluaciones.length > 0 && (
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-md p-6 border-2 border-purple-200">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            📝 Evaluaciones Disponibles ({evaluaciones.length})
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {evaluaciones.map((evaluacion) => {
+              const completada = evaluacion.completada || false;
+              const intentosUsados = evaluacion.intentosUsados || 0;
+              const intentosRestantes = evaluacion.intentosPermitidos - intentosUsados;
+              const puedeTomar = intentosRestantes > 0 && !completada;
+
+              return (
+                <div
+                  key={evaluacion.id}
+                  className={`bg-white border-2 rounded-lg p-4 hover:shadow-lg transition-all ${
+                    completada ? "border-green-400 bg-green-50" : "border-purple-300"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-bold text-gray-900 flex-1">{evaluacion.titulo}</h3>
+                    {completada && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
+                        ✓ Completada
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{evaluacion.descripcion}</p>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold">Curso:</span> {evaluacion.cursoNombre}
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold">Tiempo:</span> {evaluacion.tiempoLimiteMinutos} min
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold">Preguntas:</span> {evaluacion.preguntas?.length || 0}
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold">Intentos:</span>{" "}
+                      {intentosUsados}/{evaluacion.intentosPermitidos}
+                      {intentosRestantes > 0 && (
+                        <span className="text-green-600 ml-1">({intentosRestantes} restantes)</span>
+                      )}
+                    </div>
+                    {completada && evaluacion.mejorPuntuacion !== undefined && (
+                      <div className="bg-green-100 rounded-lg p-2 mt-2">
+                        <div className="text-sm font-semibold text-green-800 mb-1">
+                          🏆 Mejor Resultado:
+                        </div>
+                        <div className="text-sm text-green-700">
+                          <span className="font-bold">{evaluacion.mejorPuntuacion} puntos</span>
+                          {evaluacion.mejorPorcentaje !== undefined && (
+                            <span className="ml-2">
+                              ({evaluacion.mejorPorcentaje.toFixed(1)}%)
+                            </span>
+                          )}
+                        </div>
+                        {evaluacion.fechaCompletado && (
+                          <div className="text-xs text-green-600 mt-1">
+                            Completada: {new Date(evaluacion.fechaCompletado).toLocaleDateString("es-ES", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => handleTomarEvaluacion(evaluacion)}
+                    disabled={cargandoEvaluacion || !puedeTomar}
+                    className={`w-full py-2 px-4 rounded-lg font-bold transition-all disabled:opacity-50 ${
+                      completada
+                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                        : puedeTomar
+                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+                        : "bg-red-300 text-red-700 cursor-not-allowed"
+                    }`}
+                  >
+                    {cargandoEvaluacion
+                      ? "Cargando..."
+                      : completada
+                      ? "✓ Evaluación Completada"
+                      : intentosRestantes <= 0
+                      ? "❌ Sin intentos disponibles"
+                      : "📝 Tomar Evaluación"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {misiones.length === 0 ? (
         <div className="bg-white rounded-lg p-12 text-center border border-gray-200">
           <span className="text-6xl text-gray-400 mb-4 block">🎯</span>
@@ -201,44 +394,61 @@ const MisionesEstudiante = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {misiones.map((mision) => {
             const expired = isExpired(mision.fechaLimite);
+            const tema = getTemaConfig(mision.temaVisual || "DEFAULT");
+            const headerImage = getTemaImage(mision.temaVisual || "DEFAULT", "header-bg.jpg");
+            
             return (
               <div
                 key={mision.id}
-                className={`rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow ${
+                className={`rounded-xl shadow-2xl border-2 overflow-hidden hover:scale-105 hover:shadow-3xl transition-all duration-300 transform ${
                   expired && !mision.completada
-                    ? "bg-gray-50 border-red-200 opacity-75"
-                    : "bg-white border-gray-200"
-                }`}
+                    ? "opacity-60 grayscale"
+                    : ""
+                } ${tema.border} bg-white`}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                      {mision.titulo}
-                    </h3>
-                    <p className="text-sm text-gray-500 mb-2">
-                      📚 {mision.cursoNombre} • Asignada por tu profesor
-                    </p>
-                    {getEstadoBadge(mision)}
+                {/* Header temático con imagen de fondo */}
+                <div 
+                  className={`relative ${tema.headerBg} p-6 text-white min-h-[180px] flex flex-col justify-between overflow-hidden`}
+                  style={{
+                    backgroundImage: `url(${headerImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundBlendMode: 'overlay'
+                  }}
+                >
+                  {/* Overlay oscuro para mejor legibilidad */}
+                  <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+                  
+                  {/* Contenido del header */}
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-4xl drop-shadow-lg">{tema.icon}</span>
+                        <div className="bg-black bg-opacity-30 px-3 py-1 rounded-full backdrop-blur-sm">
+                          <span className="text-xs font-semibold">{mision.cursoNombre}</span>
+                        </div>
+                      </div>
+                      {getEstadoBadge(mision)}
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 drop-shadow-lg">{mision.titulo}</h3>
+                  </div>
+                  
+                  {/* Badge de dificultad en el header */}
+                  <div className="relative z-10 flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm bg-black bg-opacity-40 ${getDificultadColor(mision.dificultad)}`}>
+                      {mision.dificultad}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm bg-yellow-500 bg-opacity-80 text-yellow-900 flex items-center gap-1">
+                      ⭐ {mision.puntosRecompensa} pts
+                    </span>
                   </div>
                 </div>
-
-                <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                  {mision.descripcion}
-                </p>
-
-                <div className="flex items-center gap-4 mb-4 text-sm">
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${getDificultadColor(
-                      mision.dificultad
-                    )}`}
-                  >
-                    {mision.dificultad}
-                  </span>
-                  <span className="flex items-center gap-1 text-gray-600">
-                    <span className="text-yellow-500">⭐</span>
-                    {mision.puntosRecompensa} pts
-                  </span>
-                </div>
+                
+                {/* Contenido mejorado */}
+                <div className={`${tema.cardBg} p-5`}>
+                  <p className="text-sm text-gray-700 mb-4 line-clamp-3 leading-relaxed">
+                    {mision.descripcion}
+                  </p>
 
                 {mision.completada && mision.puntosObtenidos > 0 && (
                   <div className="mb-4 p-2 bg-green-50 rounded text-sm text-green-800">
@@ -246,32 +456,42 @@ const MisionesEstudiante = () => {
                   </div>
                 )}
 
+                {/* Barra de progreso mejorada */}
                 <div className="mb-4">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                    <span>Progreso</span>
-                    <span>{mision.porcentajeCompletado}%</span>
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-700 mb-2">
+                    <span className="flex items-center gap-1">
+                      <span className="text-lg">📊</span> Progreso
+                    </span>
+                    <span className={`font-bold ${mision.porcentajeCompletado === 100 ? 'text-green-600' : 'text-gray-600'}`}>
+                      {mision.porcentajeCompletado}%
+                    </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
                     <div
-                      className="bg-blue-600 h-2 rounded-full transition-all"
+                      className={`h-3 rounded-full transition-all duration-500 ${tema.gradient} bg-gradient-to-r`}
                       style={{ width: `${mision.porcentajeCompletado}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="text-xs text-gray-500 mb-4">
-                  <div
-                    className={
-                      isExpired(mision.fechaLimite)
-                        ? "text-red-600 font-semibold"
-                        : ""
-                    }
-                  >
-                    Fecha límite: {formatDate(mision.fechaLimite)}
-                    {isExpired(mision.fechaLimite) && " ⚠️"}
+                {/* Información de fechas mejorada */}
+                <div className="space-y-2 mb-4">
+                  <div className={`text-xs p-2 rounded-lg ${
+                    isExpired(mision.fechaLimite)
+                      ? "bg-red-50 text-red-700 border border-red-200"
+                      : "bg-gray-50 text-gray-600"
+                  }`}>
+                    <div className="flex items-center gap-1 font-semibold">
+                      <span>📅</span> Fecha límite: {formatDate(mision.fechaLimite)}
+                      {isExpired(mision.fechaLimite) && <span className="ml-1">⚠️</span>}
+                    </div>
                   </div>
                   {mision.fechaCompletado && (
-                    <div>Completada: {formatDate(mision.fechaCompletado)}</div>
+                    <div className="text-xs p-2 rounded-lg bg-green-50 text-green-700 border border-green-200">
+                      <div className="flex items-center gap-1 font-semibold">
+                        <span>✅</span> Completada: {formatDate(mision.fechaCompletado)}
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -287,13 +507,14 @@ const MisionesEstudiante = () => {
                     ) : (
                       <button
                         onClick={() => handleCompletarClick(mision)}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        className={`w-full py-3 px-4 rounded-lg font-bold text-sm transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r ${tema.gradient} text-white hover:shadow-xl`}
                       >
-                        Completar Misión
+                        🎯 Completar Misión
                       </button>
                     )}
                   </>
                 )}
+                </div>
               </div>
             );
           })}
@@ -399,6 +620,30 @@ const MisionesEstudiante = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Evaluación Gamificada */}
+      {evaluacionActual && (
+        <TomarEvaluacionModal
+          isOpen={mostrarEvaluacion}
+          onClose={() => {
+            setMostrarEvaluacion(false);
+            setEvaluacionActual(null);
+          }}
+          evaluacion={evaluacionActual}
+          onComplete={handleEvaluacionCompletada}
+        />
+      )}
+
+      {cargandoEvaluacion && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-700">Cargando evaluación...</p>
             </div>
           </div>
         </div>

@@ -1,8 +1,11 @@
 package com.eduquestia.backend.service;
 
+import com.eduquestia.backend.dto.request.OtorgarRecompensaRequest;
 import com.eduquestia.backend.dto.response.PerfilGamificadoResponse;
 import com.eduquestia.backend.dto.response.RankingResponse;
+import com.eduquestia.backend.dto.response.RecompensaManualResponse;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface GamificacionService {
@@ -41,5 +44,26 @@ public interface GamificacionService {
      * Calcula puntos necesarios para el siguiente nivel
      */
     Integer calcularPuntosParaSiguienteNivel(Integer puntos);
+    
+    /**
+     * Otorga una recompensa manual a un estudiante
+     * Historia de Usuario #12: Recompensas manuales
+     */
+    RecompensaManualResponse otorgarRecompensaManual(OtorgarRecompensaRequest request, UUID profesorId);
+    
+    /**
+     * Obtiene todas las recompensas manuales de un estudiante
+     */
+    List<RecompensaManualResponse> obtenerRecompensasManualesPorEstudiante(UUID estudianteId);
+    
+    /**
+     * Obtiene todas las recompensas manuales otorgadas por un profesor
+     */
+    List<RecompensaManualResponse> obtenerRecompensasManualesPorProfesor(UUID profesorId);
+    
+    /**
+     * Obtiene el total de puntos de recompensas manuales de un estudiante
+     */
+    Integer obtenerPuntosRecompensasManuales(UUID estudianteId);
 }
 

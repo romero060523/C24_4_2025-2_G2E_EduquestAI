@@ -6,17 +6,15 @@ WORKDIR /app
 
 # Copiar archivos de configuración de Maven
 COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
 
 # Descargar dependencias (se cachea esta capa si pom.xml no cambia)
-RUN ./mvnw dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 # Copiar el código fuente
 COPY src ./src
 
 # Construir la aplicación (saltando tests para build más rápido)
-RUN ./mvnw clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B
 
 # Stage 2: Runtime con JRE
 FROM eclipse-temurin:21-jre-alpine
@@ -29,6 +27,10 @@ WORKDIR /app
 
 # Copiar el JAR construido desde el stage anterior
 COPY --from=builder /app/target/*.jar app.jar
+
+# Crear directorio de uploads y dar permisos
+RUN mkdir -p /app/uploads/pdf /app/uploads/imagen /app/uploads/video && \
+    chown -R spring:spring /app/uploads
 
 # Cambiar al usuario no privilegiado
 USER spring:spring

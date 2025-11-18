@@ -229,38 +229,6 @@ export interface MisionProgresoResponse {
   estudiantes: EstudianteProgresoResponse[];
 }
 
-// Alertas Tempranas
-export type EstadoAlerta = 'ACTIVA' | 'EN_SEGUIMIENTO' | 'RESUELTA' | 'ARCHIVADA';
-
-export interface AlertaTempranaResponse {
-  id: string;
-  estudianteId: string;
-  estudianteNombre: string;
-  estudianteEmail: string;
-  profesorId: string;
-  profesorNombre: string;
-  cursoId: string;
-  cursoNombre: string;
-  titulo: string;
-  mensaje: string;
-  estado: EstadoAlerta;
-  fechaCreacion: string;
-  fechaActualizacion?: string;
-  fechaResuelta?: string;
-  accionTomada?: string;
-}
-
-export interface CrearAlertaRequest {
-  estudianteId: string;
-  cursoId: string;
-  titulo: string;
-  mensaje: string;
-}
-
-export interface ActualizarAlertaRequest {
-  estado?: EstadoAlerta;
-  accionTomada?: string;
-}
 
 // Evaluaciones Gamificadas
 export type TipoPregunta = 
@@ -309,6 +277,12 @@ export interface EvaluacionGamificadaResponse {
   preguntas: PreguntaResponse[];
   fechaCreacion: string;
   fechaActualizacion?: string;
+  // Campos específicos del estudiante (solo cuando se consulta para un estudiante)
+  completada?: boolean; // Si el estudiante ya completó la evaluación
+  intentosUsados?: number; // Cuántos intentos ha usado el estudiante
+  mejorPuntuacion?: number; // Mejor puntuación obtenida
+  mejorPorcentaje?: number; // Mejor porcentaje obtenido
+  fechaCompletado?: string; // Fecha en que completó (si ya la completó)
 }
 
 export interface ResultadoEvaluacionResponse {

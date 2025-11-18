@@ -8,7 +8,6 @@ import {
   Users,
   BarChart3,
   Sparkles,
-  AlertTriangle,
   LogOut,
   TrendingUp,
   Trophy,
@@ -150,20 +149,6 @@ const SidebarProfesor = () => {
         >
           <Trophy size={20} />
           <span>Ranking</span>
-        </NavLink>
-
-        <NavLink
-          to="alertas"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-red-50 text-red-700"
-                : "text-gray-600 hover:bg-gray-50"
-            }`
-          }
-        >
-          <AlertTriangle size={20} />
-          <span>Alertas</span>
         </NavLink>
 
         <NavLink

@@ -35,12 +35,22 @@ const MisionesEstudiante = () => {
   }, []);
 
   const loadEvaluaciones = async () => {
+    console.log('🔍 [DEBUG] loadEvaluaciones() ejecutándose...');
+    const estudianteId = localStorage.getItem("estudianteId") || localStorage.getItem("userId");
+    console.log('🔍 [DEBUG] estudianteId:', estudianteId);
     try {
+      console.log('🔍 [DEBUG] Llamando a apiService.listarEvaluacionesEstudiante()...');
       const result = await apiService.listarEvaluacionesEstudiante();
-      setEvaluaciones(result);
       console.log('✅ Evaluaciones del estudiante:', result);
+      console.log('🔍 [DEBUG] Cantidad de evaluaciones:', result?.length || 0);
+      setEvaluaciones(result || []);
     } catch (e: unknown) {
       console.error('❌ Error cargando evaluaciones:', e);
+      if (e instanceof Error) {
+        console.error('❌ Mensaje de error:', e.message);
+        console.error('❌ Stack:', e.stack);
+      }
+      setEvaluaciones([]); // Asegurar que siempre sea un array
     }
   };
 
@@ -127,6 +137,12 @@ const MisionesEstudiante = () => {
   };
 
   const handleTomarEvaluacion = async (evaluacion: EvaluacionGamificadaResponse) => {
+    // Verificar si ya está completada
+    if (evaluacion.completada) {
+      alert("Ya has completado esta evaluación. No puedes tomarla nuevamente.");
+      return;
+    }
+
     setCargandoEvaluacion(true);
     try {
       const intentosRestantes = await apiService.obtenerIntentosRestantes(evaluacion.id);
@@ -270,36 +286,96 @@ const MisionesEstudiante = () => {
             📝 Evaluaciones Disponibles ({evaluaciones.length})
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {evaluaciones.map((evaluacion) => (
-              <div
-                key={evaluacion.id}
-                className="bg-white border-2 border-purple-300 rounded-lg p-4 hover:shadow-lg transition-all"
-              >
-                <h3 className="font-bold text-gray-900 mb-2">{evaluacion.titulo}</h3>
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{evaluacion.descripcion}</p>
-                <div className="space-y-2 mb-4">
-                  <div className="text-sm text-gray-700">
-                    <span className="font-semibold">Curso:</span> {evaluacion.cursoNombre}
-                  </div>
-                  <div className="text-sm text-gray-700">
-                    <span className="font-semibold">Tiempo:</span> {evaluacion.tiempoLimiteMinutos} min
-                  </div>
-                  <div className="text-sm text-gray-700">
-                    <span className="font-semibold">Preguntas:</span> {evaluacion.preguntas?.length || 0}
-                  </div>
-                  <div className="text-sm text-gray-700">
-                    <span className="font-semibold">Intentos:</span> {evaluacion.intentosPermitidos}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleTomarEvaluacion(evaluacion)}
-                  disabled={cargandoEvaluacion}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2 px-4 rounded-lg font-bold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50"
+            {evaluaciones.map((evaluacion) => {
+              const completada = evaluacion.completada || false;
+              const intentosUsados = evaluacion.intentosUsados || 0;
+              const intentosRestantes = evaluacion.intentosPermitidos - intentosUsados;
+              const puedeTomar = intentosRestantes > 0 && !completada;
+
+              return (
+                <div
+                  key={evaluacion.id}
+                  className={`bg-white border-2 rounded-lg p-4 hover:shadow-lg transition-all ${
+                    completada ? "border-green-400 bg-green-50" : "border-purple-300"
+                  }`}
                 >
-                  {cargandoEvaluacion ? "Cargando..." : "📝 Tomar Evaluación"}
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-bold text-gray-900 flex-1">{evaluacion.titulo}</h3>
+                    {completada && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
+                        ✓ Completada
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{evaluacion.descripcion}</p>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold">Curso:</span> {evaluacion.cursoNombre}
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold">Tiempo:</span> {evaluacion.tiempoLimiteMinutos} min
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold">Preguntas:</span> {evaluacion.preguntas?.length || 0}
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold">Intentos:</span>{" "}
+                      {intentosUsados}/{evaluacion.intentosPermitidos}
+                      {intentosRestantes > 0 && (
+                        <span className="text-green-600 ml-1">({intentosRestantes} restantes)</span>
+                      )}
+                    </div>
+                    {completada && evaluacion.mejorPuntuacion !== undefined && (
+                      <div className="bg-green-100 rounded-lg p-2 mt-2">
+                        <div className="text-sm font-semibold text-green-800 mb-1">
+                          🏆 Mejor Resultado:
+                        </div>
+                        <div className="text-sm text-green-700">
+                          <span className="font-bold">{evaluacion.mejorPuntuacion} puntos</span>
+                          {evaluacion.mejorPorcentaje !== undefined && (
+                            <span className="ml-2">
+                              ({evaluacion.mejorPorcentaje.toFixed(1)}%)
+                            </span>
+                          )}
+                        </div>
+                        {evaluacion.fechaCompletado && (
+                          <div className="text-xs text-green-600 mt-1">
+                            Completada: {new Date(evaluacion.fechaCompletado).toLocaleDateString("es-ES", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => handleTomarEvaluacion(evaluacion)}
+                    disabled={cargandoEvaluacion || !puedeTomar}
+                    className={`w-full py-2 px-4 rounded-lg font-bold transition-all disabled:opacity-50 ${
+                      completada
+                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                        : puedeTomar
+                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+                        : "bg-red-300 text-red-700 cursor-not-allowed"
+                    }`}
+                  >
+                    {cargandoEvaluacion
+                      ? "Cargando..."
+                      : completada
+                      ? "✓ Evaluación Completada"
+                      : intentosRestantes <= 0
+                      ? "❌ Sin intentos disponibles"
+                      : "📝 Tomar Evaluación"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

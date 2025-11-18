@@ -12,9 +12,6 @@ import type {
   Curso,
   MisionProgresoResponse,
   RankingResponse,
-  AlertaTempranaResponse,
-  CrearAlertaRequest,
-  ActualizarAlertaRequest,
   EvaluacionGamificadaResponse,
   CrearEvaluacionRequest,
   ResponderEvaluacionRequest,
@@ -299,40 +296,6 @@ class ApiService {
   async obtenerRankingPorCursoProfesor(cursoId: string): Promise<RankingResponse> {
     const response = await this.api.get(`/gamificacion/ranking/curso/${cursoId}`);
     return response.data?.data || response.data;
-  }
-
-  // ==================== ALERTAS TEMPRANAS ====================
-
-  async crearAlertaTemprana(request: CrearAlertaRequest): Promise<AlertaTempranaResponse> {
-    const response = await this.api.post("/alertas-temprana", request);
-    return response.data?.data || response.data;
-  }
-
-  async obtenerAlertasPorEstudiante(estudianteId: string): Promise<AlertaTempranaResponse[]> {
-    const response = await this.api.get(`/alertas-temprana/estudiante/${estudianteId}`);
-    return response.data?.data || response.data;
-  }
-
-  async obtenerAlertasPorProfesor(profesorId: string): Promise<AlertaTempranaResponse[]> {
-    const response = await this.api.get(`/alertas-temprana/profesor/${profesorId}`);
-    return response.data?.data || response.data;
-  }
-
-  async obtenerAlertasPorCurso(cursoId: string): Promise<AlertaTempranaResponse[]> {
-    const response = await this.api.get(`/alertas-temprana/curso/${cursoId}`);
-    return response.data?.data || response.data;
-  }
-
-  async actualizarAlertaTemprana(
-    alertaId: string,
-    request: ActualizarAlertaRequest
-  ): Promise<AlertaTempranaResponse> {
-    const response = await this.api.put(`/alertas-temprana/${alertaId}`, request);
-    return response.data?.data || response.data;
-  }
-
-  async eliminarAlertaTemprana(alertaId: string): Promise<void> {
-    await this.api.delete(`/alertas-temprana/${alertaId}`);
   }
 
   // ==================== EVALUACIONES GAMIFICADAS ====================

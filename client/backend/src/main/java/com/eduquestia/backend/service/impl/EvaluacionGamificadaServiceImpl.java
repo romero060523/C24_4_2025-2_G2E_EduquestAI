@@ -499,15 +499,68 @@ public class EvaluacionGamificadaServiceImpl implements EvaluacionGamificadaServ
         
         log.info("Se encontraron {} evaluaciones para los cursos del estudiante", evaluaciones.size());
         
-        // Filtrar solo las activas
+        // Filtrar solo las activas y convertir incluyendo información del estudiante
         List<EvaluacionGamificadaResponse> resultado = evaluaciones.stream()
                 .filter(EvaluacionGamificada::getActivo)
-                .map(this::convertirAResponse)
+                .map(evaluacion -> convertirAResponseConEstudiante(evaluacion, estudianteId))
                 .collect(Collectors.toList());
                 
         log.info("Retornando {} evaluaciones activas para estudiante {}", resultado.size(), estudianteId);
         
         return resultado;
+    }
+    
+    /**
+     * Convierte una evaluación a response incluyendo información específica del estudiante
+     */
+    private EvaluacionGamificadaResponse convertirAResponseConEstudiante(EvaluacionGamificada evaluacion, UUID estudianteId) {
+        EvaluacionGamificadaResponse response = convertirAResponse(evaluacion);
+        
+        // Obtener todos los resultados del estudiante para esta evaluación
+        List<ResultadoEvaluacion> resultados = resultadoRepository.findByEvaluacionIdAndEstudianteId(
+                evaluacion.getId(), estudianteId);
+        
+        if (resultados.isEmpty()) {
+            // El estudiante no ha intentado esta evaluación
+            response.setCompletada(false);
+            response.setIntentosUsados(0);
+            response.setMejorPuntuacion(null);
+            response.setMejorPorcentaje(null);
+            response.setFechaCompletado(null);
+        } else {
+            // Calcular estadísticas del estudiante
+            int intentosUsados = resultados.size();
+            boolean completada = resultados.stream()
+                    .anyMatch(ResultadoEvaluacion::getCompletada);
+            
+            // Encontrar el mejor resultado (mayor puntuación)
+            ResultadoEvaluacion mejorResultado = resultados.stream()
+                    .max((r1, r2) -> Integer.compare(
+                            r1.getPuntosTotales() + r1.getPuntosBonus(),
+                            r2.getPuntosTotales() + r2.getPuntosBonus()))
+                    .orElse(null);
+            
+            response.setCompletada(completada);
+            response.setIntentosUsados(intentosUsados);
+            
+            if (mejorResultado != null) {
+                response.setMejorPuntuacion(mejorResultado.getPuntosTotales() + mejorResultado.getPuntosBonus());
+                response.setMejorPorcentaje(mejorResultado.getPorcentaje());
+                
+                // Fecha del último intento completado
+                if (completada) {
+                    ResultadoEvaluacion ultimoCompletado = resultados.stream()
+                            .filter(ResultadoEvaluacion::getCompletada)
+                            .max((r1, r2) -> r1.getFechaCompletado().compareTo(r2.getFechaCompletado()))
+                            .orElse(null);
+                    if (ultimoCompletado != null) {
+                        response.setFechaCompletado(ultimoCompletado.getFechaCompletado());
+                    }
+                }
+            }
+        }
+        
+        return response;
     }
 }
 

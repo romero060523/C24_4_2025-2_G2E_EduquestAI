@@ -30,6 +30,13 @@ public class EvaluacionGamificadaResponse {
     private List<PreguntaResponse> preguntas;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
+    
+    // Campos específicos del estudiante (solo se llenan cuando se consulta para un estudiante)
+    private Boolean completada; // Si el estudiante ya completó la evaluación
+    private Integer intentosUsados; // Cuántos intentos ha usado el estudiante
+    private Integer mejorPuntuacion; // Mejor puntuación obtenida
+    private Double mejorPorcentaje; // Mejor porcentaje obtenido
+    private LocalDateTime fechaCompletado; // Fecha en que completó (si ya la completó)
 }
 
 

@@ -17,6 +17,8 @@ import RecompensasEstudiante from "./pages/estudiante/RecompensasEstudiante";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RankingPage from "./pages/estudiante/RankingPage";
 import PerfilGamificado from "./pages/estudiante/PerfilGamificado";
+import AlertasPage from "./pages/profesor/AlertasPage";
+import ConfigurarAlertasPage from "./pages/profesor/ConfigurarAlertasPage";
 
 function App() {
   return (
@@ -38,6 +40,8 @@ function App() {
         <Route path="misiones" element={<MisionesPage />} />
         <Route path="estudiantes" element={<EstudiantesPage />} />
         <Route path="progreso" element={<ProgresoEstudiantesPage />} />
+        <Route path="alertas" element={<AlertasPage />} />
+        <Route path="configurar-alertas" element={<ConfigurarAlertasPage />} />
         <Route path="ranking" element={<RankingGrupoPage />} />
         <Route path="reportes" element={<ReportesPage />} />
         <Route path="recursos" element={<RecursosPage />} />

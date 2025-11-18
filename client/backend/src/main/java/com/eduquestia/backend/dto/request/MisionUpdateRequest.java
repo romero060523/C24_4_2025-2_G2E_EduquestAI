@@ -33,6 +33,13 @@ public class MisionUpdateRequest {
     @Min(value = 0, message = "La experiencia debe ser positiva")
     private Integer experienciaRecompensa;
 
+    @Min(value = 0, message = "Las monedas deben ser positivas")
+    private Integer monedasRecompensa;
+
+    @Min(value = 1, message = "La semana de clase debe ser mayor a 0")
+    @jakarta.validation.constraints.Max(value = 20, message = "La semana de clase no puede ser mayor a 20")
+    private Integer semanaClase;
+
     private LocalDateTime fechaInicio;
 
     private LocalDateTime fechaLimite;

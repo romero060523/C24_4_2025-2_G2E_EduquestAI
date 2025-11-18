@@ -32,6 +32,8 @@ public interface MisionService {
 
     void asignarMisionAEstudiantes(UUID misionId, List<UUID> estudiantesIds, UUID profesorId);
 
+    void reasignarMisionATodosEstudiantes(UUID misionId, UUID profesorId);
+
     // Métodos para estudiantes
     List<MisionEstudianteResponse> listarMisionesPorEstudiante(UUID estudianteId);
 

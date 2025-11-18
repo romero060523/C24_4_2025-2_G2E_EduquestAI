@@ -3,6 +3,7 @@ package com.eduquestia.backend.entity;
 import com.eduquestia.backend.entity.enums.CategoriaMision;
 import com.eduquestia.backend.entity.enums.DificultadMision;
 import com.eduquestia.backend.entity.enums.TipoMision;
+import com.eduquestia.backend.entity.enums.TemaVisual;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -69,6 +70,17 @@ public class Mision {
 
     @Column(name = "experiencia_recompensa")
     private Integer experienciaRecompensa = 0;
+
+    @Column(name = "monedas_recompensa")
+    private Integer monedasRecompensa = 0;
+
+    @Column(name = "semana_clase")
+    private Integer semanaClase;
+
+    // ENUM: tema visual de la misión (medieval, anime, espacial, etc.)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tema_visual", length = 20)
+    private TemaVisual temaVisual = TemaVisual.DEFAULT;
 
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDateTime fechaInicio;

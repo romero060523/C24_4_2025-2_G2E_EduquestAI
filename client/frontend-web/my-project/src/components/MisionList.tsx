@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { MisionListResponse } from '../types';
-import { Target, Edit2, Trash2 } from 'lucide-react';
+import { Target, Edit2, Trash2, FileQuestion } from 'lucide-react';
 import EditarMisionModal from './EditarMisionModal';
+import CrearEvaluacionModal from './profesor/CrearEvaluacionModal';
 import { apiService } from '../services/api';
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
 const MisionList: React.FC<Props> = ({ misiones, onMisionUpdated }) => {
   const [misionToEdit, setMisionToEdit] = useState<MisionListResponse | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [misionParaEvaluacion, setMisionParaEvaluacion] = useState<MisionListResponse | null>(null);
+  const [isEvaluacionModalOpen, setIsEvaluacionModalOpen] = useState(false);
 
   const handleEdit = (mision: MisionListResponse) => {
     setMisionToEdit(mision);
@@ -26,9 +29,10 @@ const MisionList: React.FC<Props> = ({ misiones, onMisionUpdated }) => {
     try {
       await apiService.eliminarMision(mision.id);
       onMisionUpdated();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error eliminando misión:', error);
-      alert('Error al eliminar la misión');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Error al eliminar la misión';
+      alert(errorMessage);
     }
   };
 
@@ -102,6 +106,18 @@ const MisionList: React.FC<Props> = ({ misiones, onMisionUpdated }) => {
 
                   {/* Botones de acción */}
                   <div className="flex items-center gap-2">
+                    {mision.categoria === "QUIZ" && (
+                      <button
+                        onClick={() => {
+                          setMisionParaEvaluacion(mision);
+                          setIsEvaluacionModalOpen(true);
+                        }}
+                        className="p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Crear Evaluación"
+                      >
+                        <FileQuestion className="w-5 h-5" />
+                      </button>
+                    )}
                     <button
                       onClick={() => handleEdit(mision)}
                       className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -138,6 +154,23 @@ const MisionList: React.FC<Props> = ({ misiones, onMisionUpdated }) => {
           onClose={() => setIsEditModalOpen(false)}
           onSuccess={handleEditSuccess}
           mision={misionToEdit}
+        />
+      )}
+
+      {/* Modal de crear evaluación */}
+      {misionParaEvaluacion && (
+        <CrearEvaluacionModal
+          isOpen={isEvaluacionModalOpen}
+          onClose={() => {
+            setIsEvaluacionModalOpen(false);
+            setMisionParaEvaluacion(null);
+          }}
+          onSuccess={() => {
+            onMisionUpdated();
+            setIsEvaluacionModalOpen(false);
+            setMisionParaEvaluacion(null);
+          }}
+          misionOpcional={misionParaEvaluacion}
         />
       )}
     </div>

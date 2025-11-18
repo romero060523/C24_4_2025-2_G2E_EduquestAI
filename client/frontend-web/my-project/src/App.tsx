@@ -9,11 +9,13 @@ import ReportesPage from "./pages/profesor/ReportesPage";
 import RecursosPage from "./pages/profesor/RecursosPage";
 import ProgresoEstudiantesPage from "./pages/profesor/ProgresoEstudiantesPage";
 import RankingGrupoPage from "./pages/profesor/RankingGrupoPage";
+import AlertasTempranaPage from "./pages/profesor/AlertasTempranaPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardEstudiante from "./pages/estudiante/DashboardEstudiante";
 import CursosEstudiante from "./pages/estudiante/CursosEstudiante";
 import MisionesEstudiante from "./pages/estudiante/MisionesEstudiante";
 import RecompensasEstudiante from "./pages/estudiante/RecompensasEstudiante";
+import AlertasEstudiantePage from "./pages/estudiante/AlertasEstudiantePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RankingPage from "./pages/estudiante/RankingPage";
 import PerfilGamificado from "./pages/estudiante/PerfilGamificado";
@@ -39,6 +41,7 @@ function App() {
         <Route path="estudiantes" element={<EstudiantesPage />} />
         <Route path="progreso" element={<ProgresoEstudiantesPage />} />
         <Route path="ranking" element={<RankingGrupoPage />} />
+        <Route path="alertas" element={<AlertasTempranaPage />} />
         <Route path="reportes" element={<ReportesPage />} />
         <Route path="recursos" element={<RecursosPage />} />
 
@@ -60,6 +63,7 @@ function App() {
         <Route path="misiones" element={<MisionesEstudiante />} />
         <Route path="recompensas" element={<RecompensasEstudiante />} />
         <Route path="ranking" element={<RankingPage />} />
+        <Route path="alertas" element={<AlertasEstudiantePage />} />
         <Route path="perfil" element={<PerfilGamificado />} />
 
         {/* Redirección por defecto */}

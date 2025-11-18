@@ -3,6 +3,7 @@ package com.eduquestia.backend.dto.request;
 import com.eduquestia.backend.entity.enums.CategoriaMision;
 import com.eduquestia.backend.entity.enums.DificultadMision;
 import com.eduquestia.backend.entity.enums.TipoMision;
+import com.eduquestia.backend.entity.enums.TemaVisual;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -45,6 +46,16 @@ public class MisionCreateRequest {
     @NotNull(message = "La experiencia de recompensa es obligatoria")
     @Min(value = 0, message = "La experiencia debe ser positiva")
     private Integer experienciaRecompensa;
+
+    @NotNull(message = "Las monedas de recompensa son obligatorias")
+    @Min(value = 0, message = "Las monedas deben ser positivas")
+    private Integer monedasRecompensa;
+
+    @Min(value = 1, message = "La semana de clase debe ser mayor a 0")
+    @Max(value = 20, message = "La semana de clase no puede ser mayor a 20")
+    private Integer semanaClase;
+
+    private TemaVisual temaVisual = TemaVisual.DEFAULT;
 
     @NotNull(message = "La fecha de inicio es obligatoria")
     private LocalDateTime fechaInicio;

@@ -345,45 +345,8 @@ class ReportesViewSet(viewsets.ViewSet):
                     for row in cursor.fetchall()
                 ]
         except Exception:
-            # Si no hay datos reales, usar datos de prueba
-            estudiantes_top_puntos = [
-                {
-                    'estudiante_id': str(uuid4()),
-                    'nombre': 'María González',
-                    'puntos_totales': 3250
-                },
-                {
-                    'estudiante_id': str(uuid4()),
-                    'nombre': 'Carlos Ramírez',
-                    'puntos_totales': 1850
-                },
-            ]
-        
-        # Si no hay datos reales, usar datos de prueba para estadísticas generales
-        if total_estudiantes == 0 and total_cursos == 0:
-            total_estudiantes = 2
-            total_profesores = 2
-            total_cursos = 2
-            total_misiones = 27
-            total_puntos_otorgados = 5100
-            promedio_puntos_por_estudiante = 2550.0
-            total_logros_obtenidos = 13
-            estudiantes_activos_mes = 2
-            misiones_completadas_mes = 70
-            cursos_mas_activos = [
-                {
-                    'id': str(uuid4()),
-                    'nombre': 'Introducción a la Programación',
-                    'codigo_curso': 'PROG-101',
-                    'total_estudiantes': 45
-                },
-                {
-                    'id': str(uuid4()),
-                    'nombre': 'Base de Datos Avanzadas',
-                    'codigo_curso': 'BD-301',
-                    'total_estudiantes': 32
-                },
-            ]
+            # Si no hay datos reales, devolver lista vacía
+            estudiantes_top_puntos = []
         
         estadisticas = {
             'total_estudiantes': total_estudiantes,
@@ -413,101 +376,73 @@ class ReportesViewSet(viewsets.ViewSet):
         # Obtener datos de gamificación desde las tablas del client backend
         reporte = []
         
-        # Si no hay estudiantes reales, generar datos de prueba
-        if estudiantes.count() == 0:
-            reporte = [
-                {
-                    'estudiante_id': str(uuid4()),
-                    'nombre': 'María González',
-                    'email': 'maria.gonzalez@eduquest.ai',
-                    'puntos_totales': 3250,
-                    'nivel_actual': 5,
-                    'nombre_nivel': 'Experto',
-                    'misiones_completadas': 42,
-                    'logros_obtenidos': 8,
-                    'cursos_inscritos': 3,
-                    'ultima_actividad': timezone.now() - timedelta(days=1),
-                },
-                {
-                    'estudiante_id': str(uuid4()),
-                    'nombre': 'Carlos Ramírez',
-                    'email': 'carlos.ramirez@eduquest.ai',
-                    'puntos_totales': 1850,
-                    'nivel_actual': 4,
-                    'nombre_nivel': 'Avanzado',
-                    'misiones_completadas': 28,
-                    'logros_obtenidos': 5,
-                    'cursos_inscritos': 2,
-                    'ultima_actividad': timezone.now() - timedelta(days=2),
-                },
-            ]
-        else:
-            with connection.cursor() as cursor:
-                for estudiante in estudiantes:
-                    try:
-                        # Obtener puntos totales
-                        cursor.execute("""
-                            SELECT COALESCE(SUM(puntos_obtenidos), 0)
-                            FROM grupo_03.entrega_mision
-                            WHERE estudiante_id = %s AND puntos_obtenidos IS NOT NULL
-                        """, [estudiante.id])
-                        puntos_totales = cursor.fetchone()[0] or 0
-                    except Exception:
-                        puntos_totales = 0
+        # Procesar estudiantes reales
+        with connection.cursor() as cursor:
+            for estudiante in estudiantes:
+                try:
+                    # Obtener puntos totales
+                    cursor.execute("""
+                        SELECT COALESCE(SUM(puntos_obtenidos), 0)
+                        FROM grupo_03.entrega_mision
+                        WHERE estudiante_id = %s AND puntos_obtenidos IS NOT NULL
+                    """, [estudiante.id])
+                    puntos_totales = cursor.fetchone()[0] or 0
+                except Exception:
+                    puntos_totales = 0
                     
-                    # Calcular nivel (simplificado - nivel 1-6 basado en puntos)
-                    nivel_actual = 1
-                    nombre_nivel = 'Principiante'
-                    if puntos_totales >= 5000:
-                        nivel_actual = 6
-                        nombre_nivel = 'Maestro'
-                    elif puntos_totales >= 2500:
-                        nivel_actual = 5
-                        nombre_nivel = 'Experto'
-                    elif puntos_totales >= 1000:
-                        nivel_actual = 4
-                        nombre_nivel = 'Avanzado'
-                    elif puntos_totales >= 500:
-                        nivel_actual = 3
-                        nombre_nivel = 'Intermedio'
-                    elif puntos_totales >= 100:
-                        nivel_actual = 2
-                        nombre_nivel = 'Principiante+'
+                # Calcular nivel (simplificado - nivel 1-6 basado en puntos)
+                nivel_actual = 1
+                nombre_nivel = 'Principiante'
+                if puntos_totales >= 5000:
+                    nivel_actual = 6
+                    nombre_nivel = 'Maestro'
+                elif puntos_totales >= 2500:
+                    nivel_actual = 5
+                    nombre_nivel = 'Experto'
+                elif puntos_totales >= 1000:
+                    nivel_actual = 4
+                    nombre_nivel = 'Avanzado'
+                elif puntos_totales >= 500:
+                    nivel_actual = 3
+                    nombre_nivel = 'Intermedio'
+                elif puntos_totales >= 100:
+                    nivel_actual = 2
+                    nombre_nivel = 'Principiante+'
                     
-                    # Contar misiones completadas
-                    try:
-                        cursor.execute("""
-                            SELECT COUNT(*) FROM grupo_03.progreso_mision
-                            WHERE estudiante_id = %s AND completada = true
-                        """, [estudiante.id])
-                        misiones_completadas = cursor.fetchone()[0] or 0
-                    except Exception:
-                        misiones_completadas = 0
-                    
-                    # Contar logros obtenidos
-                    try:
-                        cursor.execute("""
-                            SELECT COUNT(*) FROM grupo_03.logros_estudiante
-                            WHERE estudiante_id = %s
-                        """, [estudiante.id])
-                        logros_obtenidos = cursor.fetchone()[0] or 0
-                    except Exception:
-                        logros_obtenidos = 0
-                    
-                    reporte.append({
-                        'estudiante_id': str(estudiante.id),
-                        'nombre': estudiante.nombre_completo or estudiante.username,
-                        'email': estudiante.email,
-                        'puntos_totales': int(puntos_totales),
-                        'nivel_actual': nivel_actual,
-                        'nombre_nivel': nombre_nivel,
-                        'misiones_completadas': misiones_completadas,
-                        'logros_obtenidos': logros_obtenidos,
-                        'cursos_inscritos': Inscripcion.objects.filter(
-                            estudiante=estudiante, estado='activo'
-                        ).count(),
-                        'ultima_actividad': estudiante.ultimo_acceso,
-                    })
+                # Contar misiones completadas
+                try:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM grupo_03.progreso_mision
+                        WHERE estudiante_id = %s AND completada = true
+                    """, [estudiante.id])
+                    misiones_completadas = cursor.fetchone()[0] or 0
+                except Exception:
+                    misiones_completadas = 0
+                
+                # Contar logros obtenidos
+                try:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM grupo_03.logros_estudiante
+                        WHERE estudiante_id = %s
+                    """, [estudiante.id])
+                    logros_obtenidos = cursor.fetchone()[0] or 0
+                except Exception:
+                    logros_obtenidos = 0
+                
+                reporte.append({
+                    'estudiante_id': str(estudiante.id),
+                    'nombre': estudiante.nombre_completo or estudiante.username,
+                    'email': estudiante.email,
+                    'puntos_totales': int(puntos_totales),
+                    'nivel_actual': nivel_actual,
+                    'nombre_nivel': nombre_nivel,
+                    'misiones_completadas': misiones_completadas,
+                    'logros_obtenidos': logros_obtenidos,
+                    'cursos_inscritos': Inscripcion.objects.filter(
+                        estudiante=estudiante, estado='activo'
+                    ).count(),
+                    'ultima_actividad': estudiante.ultimo_acceso,
+                })
         
         serializer = ReporteEstudiantesSerializer(reporte, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -522,109 +457,83 @@ class ReportesViewSet(viewsets.ViewSet):
         
         reporte = []
         
-        # Si no hay cursos reales, generar datos de prueba
-        if cursos.count() == 0:
-            reporte = [
-                {
-                    'curso_id': str(uuid4()),
-                    'nombre': 'Introducción a la Programación',
-                    'codigo': 'PROG-101',
-                    'profesor_nombre': 'Dr. Juan Pérez',
-                    'total_estudiantes': 45,
-                    'misiones_activas': 12,
-                    'misiones_completadas': 380,
-                    'promedio_puntos_curso': 125.50,
-                    'tasa_completacion': 70.37,
-                },
-                {
-                    'curso_id': str(uuid4()),
-                    'nombre': 'Base de Datos Avanzadas',
-                    'codigo': 'BD-301',
-                    'profesor_nombre': 'Dra. Ana Martínez',
-                    'total_estudiantes': 32,
-                    'misiones_activas': 15,
-                    'misiones_completadas': 285,
-                    'promedio_puntos_curso': 142.75,
-                    'tasa_completacion': 59.38,
-                },
-            ]
-        else:
-            for curso in cursos:
-                inscripciones_activas = Inscripcion.objects.filter(curso=curso, estado='activo')
-                total_estudiantes = inscripciones_activas.count()
-                
-                # Obtener profesor del curso
-                profesor_nombre = 'Sin asignar'
-                if hasattr(curso, 'profesor_id') and curso.profesor_id:
-                    try:
-                        profesor = User.objects.get(id=curso.profesor_id)
-                        profesor_nombre = profesor.nombre_completo or profesor.username
-                    except User.DoesNotExist:
-                        pass
-                
-                # Obtener estadísticas de misiones del curso
+        # Procesar cursos reales
+        for curso in cursos:
+            inscripciones_activas = Inscripcion.objects.filter(curso=curso, estado='activo')
+            total_estudiantes = inscripciones_activas.count()
+            
+            # Obtener profesor del curso
+            profesor_nombre = 'Sin asignar'
+            if hasattr(curso, 'profesor_id') and curso.profesor_id:
                 try:
-                    with connection.cursor() as cursor:
+                    profesor = User.objects.get(id=curso.profesor_id)
+                    profesor_nombre = profesor.nombre_completo or profesor.username
+                except User.DoesNotExist:
+                    pass
+            
+            # Obtener estadísticas de misiones del curso
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT 
+                            COUNT(*) FILTER (WHERE activo = true) as misiones_activas,
+                            COUNT(*) FILTER (WHERE activo = false) as misiones_inactivas
+                        FROM grupo_03.misiones
+                        WHERE curso_id = %s
+                    """, [curso.id])
+                    row = cursor.fetchone()
+                    misiones_activas = row[0] or 0 if row else 0
+                    
+                    # Contar misiones completadas del curso
+                    cursor.execute("""
+                        SELECT COUNT(DISTINCT pm.mision_id)
+                        FROM grupo_03.progreso_mision pm
+                        INNER JOIN grupo_03.misiones m ON pm.mision_id = m.id
+                        WHERE m.curso_id = %s AND pm.completada = true
+                    """, [curso.id])
+                    misiones_completadas = cursor.fetchone()[0] or 0
+                    
+                    # Calcular promedio de puntos del curso
+                    cursor.execute("""
+                        SELECT COALESCE(AVG(e.puntos_obtenidos), 0)
+                        FROM grupo_03.entrega_mision e
+                        INNER JOIN grupo_03.misiones m ON e.mision_id = m.id
+                        WHERE m.curso_id = %s 
+                        AND e.puntos_obtenidos IS NOT NULL
+                    """, [curso.id])
+                    promedio_puntos_curso = float(cursor.fetchone()[0] or 0)
+                    
+                    # Calcular tasa de completación
+                    # Tasa = (misiones completadas / total de misiones asignadas) * 100
+                    if total_estudiantes > 0 and misiones_activas > 0:
                         cursor.execute("""
-                            SELECT 
-                                COUNT(*) FILTER (WHERE activo = true) as misiones_activas,
-                                COUNT(*) FILTER (WHERE activo = false) as misiones_inactivas
-                            FROM grupo_03.misiones
-                            WHERE curso_id = %s
-                        """, [curso.id])
-                        row = cursor.fetchone()
-                        misiones_activas = row[0] or 0 if row else 0
-                        
-                        # Contar misiones completadas del curso
-                        cursor.execute("""
-                            SELECT COUNT(DISTINCT pm.mision_id)
+                            SELECT COUNT(*)
                             FROM grupo_03.progreso_mision pm
                             INNER JOIN grupo_03.misiones m ON pm.mision_id = m.id
                             WHERE m.curso_id = %s AND pm.completada = true
                         """, [curso.id])
-                        misiones_completadas = cursor.fetchone()[0] or 0
-                        
-                        # Calcular promedio de puntos del curso
-                        cursor.execute("""
-                            SELECT COALESCE(AVG(e.puntos_obtenidos), 0)
-                            FROM grupo_03.entrega_mision e
-                            INNER JOIN grupo_03.misiones m ON e.mision_id = m.id
-                            WHERE m.curso_id = %s 
-                            AND e.puntos_obtenidos IS NOT NULL
-                        """, [curso.id])
-                        promedio_puntos_curso = float(cursor.fetchone()[0] or 0)
-                        
-                        # Calcular tasa de completación
-                        # Tasa = (misiones completadas / total de misiones asignadas) * 100
-                        if total_estudiantes > 0 and misiones_activas > 0:
-                            cursor.execute("""
-                                SELECT COUNT(*)
-                                FROM grupo_03.progreso_mision pm
-                                INNER JOIN grupo_03.misiones m ON pm.mision_id = m.id
-                                WHERE m.curso_id = %s AND pm.completada = true
-                            """, [curso.id])
-                            total_completadas = cursor.fetchone()[0] or 0
-                            total_posibles = total_estudiantes * misiones_activas
-                            tasa_completacion = (total_completadas / total_posibles * 100) if total_posibles > 0 else 0.0
-                        else:
-                            tasa_completacion = 0.0
-                except Exception:
-                    misiones_activas = 0
-                    misiones_completadas = 0
-                    promedio_puntos_curso = 0.0
-                    tasa_completacion = 0.0
-                
-                reporte.append({
-                    'curso_id': str(curso.id),
-                    'nombre': curso.nombre,
-                    'codigo': curso.codigo_curso or 'N/A',
-                    'profesor_nombre': profesor_nombre,
-                    'total_estudiantes': total_estudiantes,
-                    'misiones_activas': misiones_activas,
-                    'misiones_completadas': misiones_completadas,
-                    'promedio_puntos_curso': round(promedio_puntos_curso, 2),
-                    'tasa_completacion': round(tasa_completacion, 2),
-                })
+                        total_completadas = cursor.fetchone()[0] or 0
+                        total_posibles = total_estudiantes * misiones_activas
+                        tasa_completacion = (total_completadas / total_posibles * 100) if total_posibles > 0 else 0.0
+                    else:
+                        tasa_completacion = 0.0
+            except Exception:
+                misiones_activas = 0
+                misiones_completadas = 0
+                promedio_puntos_curso = 0.0
+                tasa_completacion = 0.0
+            
+            reporte.append({
+                'curso_id': str(curso.id),
+                'nombre': curso.nombre,
+                'codigo': curso.codigo_curso or 'N/A',
+                'profesor_nombre': profesor_nombre,
+                'total_estudiantes': total_estudiantes,
+                'misiones_activas': misiones_activas,
+                'misiones_completadas': misiones_completadas,
+                'promedio_puntos_curso': round(promedio_puntos_curso, 2),
+                'tasa_completacion': round(tasa_completacion, 2),
+            })
         
         serializer = ReporteCursosSerializer(reporte, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

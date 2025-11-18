@@ -9,13 +9,13 @@ class EmailBackend(ModelBackend):
         try:
             logger.info(f"🔍 Intentando autenticar con email: {username}")
             user = User.objects.get(email=username)
-            logger.info(f"✅ Usuario encontrado: {user.username} - Active: {user.active}")
+            logger.info(f"✅ Usuario encontrado: {user.username} - Activo: {user.activo}")
             
-            if user.check_password(password):
+            if user.check_password(password) and user.activo:
                 logger.info(f"✅ Contraseña correcta para {user.username}")
                 return user
             else:
-                logger.warning(f"❌ Contraseña incorrecta para {user.username}")
+                logger.warning(f"❌ Contraseña incorrecta o usuario inactivo para {user.username}")
                 return None
         except User.DoesNotExist:
             logger.warning(f"❌ No existe usuario con email: {username}")

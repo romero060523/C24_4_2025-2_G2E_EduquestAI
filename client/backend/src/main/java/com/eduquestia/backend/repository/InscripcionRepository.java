@@ -37,4 +37,6 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, UUID> 
 
     @Query("SELECT COUNT(i) FROM Inscripcion i WHERE i.estudiante.id = :estudianteId AND i.estado = 'activo'")
     Long countCursosActivosByEstudiante(@Param("estudianteId") UUID estudianteId);
+
+    List<Inscripcion> findByCursoIdAndEstado(UUID cursoId, com.eduquestia.backend.entity.enums.EstadoInscripcion estado);
 }

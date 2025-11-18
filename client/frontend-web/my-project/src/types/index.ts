@@ -1,15 +1,27 @@
 // Tipos y enums para entidades y DTOs
 
-export type TipoMision = 'INDIVIDUAL' | 'GRUPAL';
-export type CategoriaMision = 'LECTURA' | 'EJERCICIO' | 'PROYECTO' | 'QUIZ' | 'DESAFIO';
-export type DificultadMision = 'FACIL' | 'MEDIO' | 'DIFICIL' | 'EXPERTO';
+export type TipoMision = "INDIVIDUAL" | "GRUPAL";
+export type CategoriaMision =
+  | "LECTURA"
+  | "EJERCICIO"
+  | "PROYECTO"
+  | "QUIZ"
+  | "DESAFIO";
+export type DificultadMision = "FACIL" | "MEDIO" | "DIFICIL" | "EXPERTO";
+
+export type TipoAlerta =
+  | "INACTIVIDAD"
+  | "BAJO_RENDIMIENTO"
+  | "MISIONES_PENDIENTES"
+  | "DEBAJO_PROMEDIO";
+export type EstadoAlerta = "ACTIVA" | "RESUELTA" | "IGNORADA";
 
 export interface Usuario {
   id: string;
   username: string;
   email: string;
   nombreCompleto: string;
-  rol: 'ADMINISTRADOR' | 'PROFESOR' | 'ESTUDIANTE';
+  rol: "ADMINISTRADOR" | "PROFESOR" | "ESTUDIANTE";
   avatarUrl?: string;
   activo: boolean;
   fechaCreacion: string;
@@ -138,7 +150,12 @@ export interface MisionEstudianteResponse {
   porcentajeCompletado: number;
   completada: boolean;
   fechaCompletado?: string;
-  estadoEntrega: 'PENDIENTE' | 'ENVIADA' | 'REVISANDO' | 'CALIFICADA' | 'RECHAZADA';
+  estadoEntrega:
+    | "PENDIENTE"
+    | "ENVIADA"
+    | "REVISANDO"
+    | "CALIFICADA"
+    | "RECHAZADA";
   puntosObtenidos: number;
   ultimaActividad: string;
 }
@@ -219,3 +236,49 @@ export interface MisionProgresoResponse {
   estudiantes: EstudianteProgresoResponse[];
 }
 
+// ==================== ALERTAS ====================
+
+export interface ConfiguracionAlertaRequest {
+  cursoId: string;
+  diasInactividad?: number;
+  porcentajeCompletitudMinimo?: number;
+  puntosDebajoPromedio?: boolean;
+  misionesPendientesMinimo?: number;
+}
+
+export interface ConfiguracionAlertaResponse {
+  id: string;
+  cursoId: string;
+  cursoNombre: string;
+  diasInactividad?: number;
+  porcentajeCompletitudMinimo?: number;
+  puntosDebajoPromedio?: boolean;
+  misionesPendientesMinimo?: number;
+  activo: boolean;
+  fechaCreacion: string;
+}
+
+export interface AlertaRendimiento {
+  id: string;
+  estudianteId: string;
+  estudianteNombre: string;
+  estudianteEmail: string;
+  cursoId: string;
+  cursoNombre: string;
+  tipo: TipoAlerta;
+  descripcion: string;
+  datosContexto: string;
+  estado: EstadoAlerta;
+  fechaCreacion: string;
+}
+
+export interface DatosContextoAlerta {
+  diasInactivo?: number;
+  ultimaActividad?: string;
+  porcentajeCompletitud?: number;
+  misionesCompletadas?: number;
+  totalMisiones?: number;
+  puntosEstudiante?: number;
+  promedioGrupo?: number;
+  misionesPendientes?: number;
+}

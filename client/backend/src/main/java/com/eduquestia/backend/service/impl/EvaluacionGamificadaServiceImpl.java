@@ -39,6 +39,7 @@ public class EvaluacionGamificadaServiceImpl implements EvaluacionGamificadaServ
     private final ResultadoEvaluacionRepository resultadoRepository;
     private final ProgresoMisionRepository progresoRepository;
     private final EntregaMisionRepository entregaRepository;
+    private final InscripcionRepository inscripcionRepository; // ✅ AGREGADO
 
     @Override
     public EvaluacionGamificadaResponse crearEvaluacion(CrearEvaluacionRequest request, UUID profesorId) {
@@ -477,28 +478,36 @@ public class EvaluacionGamificadaServiceImpl implements EvaluacionGamificadaServ
         Usuario estudiante = usuarioRepository.findById(estudianteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Estudiante no encontrado"));
 
-        // Obtener todos los cursos del estudiante (inscripciones)
-        List<Curso> cursos = cursoRepository.findAll().stream()
-                .filter(curso -> curso.getId() != null)
-                .collect(Collectors.toList());
-
-        if (cursos.isEmpty()) {
-            log.info("El estudiante {} no tiene cursos asignados", estudianteId);
+        // ✅ CORREGIDO: Obtener SOLO los cursos donde el estudiante está inscrito
+        List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteId(estudianteId);
+        
+        if (inscripciones.isEmpty()) {
+            log.info("El estudiante {} no tiene inscripciones activas", estudianteId);
             return List.of();
         }
 
-        List<UUID> cursosIds = cursos.stream()
-                .map(Curso::getId)
+        // Obtener los IDs de los cursos de las inscripciones
+        List<UUID> cursosIds = inscripciones.stream()
+                .map(inscripcion -> inscripcion.getCurso().getId())
+                .distinct()
                 .collect(Collectors.toList());
+
+        log.info("Estudiante {} tiene {} cursos: {}", estudianteId, cursosIds.size(), cursosIds);
 
         // Obtener todas las evaluaciones activas de esos cursos
         List<EvaluacionGamificada> evaluaciones = evaluacionRepository.findByProfesorCursos(cursosIds);
         
+        log.info("Se encontraron {} evaluaciones para los cursos del estudiante", evaluaciones.size());
+        
         // Filtrar solo las activas
-        return evaluaciones.stream()
+        List<EvaluacionGamificadaResponse> resultado = evaluaciones.stream()
                 .filter(EvaluacionGamificada::getActivo)
                 .map(this::convertirAResponse)
                 .collect(Collectors.toList());
+                
+        log.info("Retornando {} evaluaciones activas para estudiante {}", resultado.size(), estudianteId);
+        
+        return resultado;
     }
 }
 

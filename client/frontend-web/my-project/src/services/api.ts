@@ -12,11 +12,13 @@ import type {
   Curso,
   MisionProgresoResponse,
   RankingResponse,
+  OtorgarRecompensaRequest,
+  RecompensaManualResponse,
 } from "../types";
 
 // Configuración base de axios
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
+  import.meta.env.VITE_API_URL || "http://localhost:8081/api/v1";
 
 class ApiService {
   private api: AxiosInstance;
@@ -283,6 +285,61 @@ class ApiService {
   async obtenerRankingPorCursoProfesor(cursoId: string): Promise<RankingResponse> {
     const response = await this.api.get(`/gamificacion/ranking/curso/${cursoId}`);
     return response.data?.data || response.data;
+  }
+
+  // ==================== RECOMPENSAS MANUALES ====================
+  // Historia de Usuario #12: Recompensas manuales
+
+  async otorgarRecompensaManual(request: OtorgarRecompensaRequest): Promise<RecompensaManualResponse> {
+    const response = await this.api.post<{
+      success: boolean;
+      data: RecompensaManualResponse;
+      message: string;
+    }>("/gamificacion/recompensas/manual", request);
+    return response.data.data;
+  }
+
+  async obtenerRecompensasPorEstudiante(estudianteId: string): Promise<RecompensaManualResponse[]> {
+    const response = await this.api.get<{
+      success: boolean;
+      data: RecompensaManualResponse[];
+      message: string;
+    }>(`/gamificacion/recompensas/estudiante/${estudianteId}`);
+    return response.data.data;
+  }
+
+  async obtenerRecompensasPorProfesor(profesorId: string): Promise<RecompensaManualResponse[]> {
+    const response = await this.api.get<{
+      success: boolean;
+      data: RecompensaManualResponse[];
+      message: string;
+    }>(`/gamificacion/recompensas/profesor/${profesorId}`);
+    return response.data.data;
+  }
+
+  /**
+   * Subir un archivo (PDF, imagen o video)
+   */
+  async subirArchivo(archivo: File, tipo: "PDF" | "IMAGEN" | "VIDEO"): Promise<string> {
+    const formData = new FormData();
+    formData.append("archivo", archivo);
+    formData.append("tipo", tipo);
+
+    const response = await this.api.post<{
+      success: boolean;
+      data: string;
+      message: string;
+    }>("/archivos/subir", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Error al subir el archivo");
+    }
+
+    return response.data.data;
   }
 }
 

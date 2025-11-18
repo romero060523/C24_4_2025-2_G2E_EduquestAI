@@ -43,6 +43,7 @@ export interface Mision {
   fechaCreacion: string;
   fechaActualizacion: string;
   requisitosPrevios?: string;
+  contenidos?: ContenidoMision[];
   profesor?: Usuario;
   curso?: Curso;
 }
@@ -61,6 +62,18 @@ export interface MisionListResponse {
   totalEstudiantes: number;
 }
 
+// Tipos para contenido de misiones
+export type TipoContenido = 'TEXTO' | 'VIDEO' | 'PDF' | 'LINK' | 'IMAGEN';
+
+export interface ContenidoMision {
+  id?: string;
+  tipoContenido: TipoContenido;
+  titulo?: string;
+  contenidoUrl?: string;
+  contenidoTexto?: string;
+  orden: number;
+}
+
 // DTOs con enums en mayúscula y nombres/campos correctos
 export interface CrearMisionDTO {
   titulo: string;
@@ -74,6 +87,7 @@ export interface CrearMisionDTO {
   fechaLimite: string;
   cursoId: string;
   requisitosPrevios?: string;
+  contenidos?: ContenidoMision[];
   // activo?: boolean; // Opcional si tu backend lo soporta
 }
 
@@ -88,6 +102,7 @@ export interface ActualizarMisionDTO {
   fechaInicio?: string;
   fechaLimite?: string;
   requisitosPrevios?: string;
+  contenidos?: ContenidoMision[];
   activo?: boolean;
 }
 
@@ -217,5 +232,30 @@ export interface MisionProgresoResponse {
   enProgreso: number;
   noIniciados: number;
   estudiantes: EstudianteProgresoResponse[];
+}
+
+// ==================== RECOMPENSAS MANUALES ====================
+// Historia de Usuario #12: Recompensas manuales
+
+export interface OtorgarRecompensaRequest {
+  estudianteId: string;
+  cursoId: string;
+  puntos: number;
+  motivo: string;
+  observaciones?: string;
+}
+
+export interface RecompensaManualResponse {
+  id: string;
+  profesorId: string;
+  profesorNombre: string;
+  estudianteId: string;
+  estudianteNombre: string;
+  cursoId: string;
+  cursoNombre: string;
+  puntos: number;
+  motivo: string;
+  observaciones?: string;
+  fechaOtorgamiento: string;
 }
 

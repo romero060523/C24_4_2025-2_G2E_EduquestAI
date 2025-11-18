@@ -30,6 +30,10 @@ WORKDIR /app
 # Copiar el JAR construido desde el stage anterior
 COPY --from=builder /app/target/*.jar app.jar
 
+# Crear directorio de uploads y dar permisos
+RUN mkdir -p /app/uploads/pdf /app/uploads/imagen /app/uploads/video && \
+    chown -R spring:spring /app/uploads
+
 # Cambiar al usuario no privilegiado
 USER spring:spring
 

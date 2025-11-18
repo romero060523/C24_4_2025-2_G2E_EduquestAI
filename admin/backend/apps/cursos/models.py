@@ -103,6 +103,7 @@ class Inscripcion(models.Model):
     fecha_inscripcion = models.DateTimeField(auto_now_add=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='activo')
     fecha_completado = models.DateTimeField(blank=True, null=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'inscripciones'

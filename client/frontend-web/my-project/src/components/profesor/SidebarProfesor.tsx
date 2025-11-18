@@ -11,6 +11,7 @@ import {
   LogOut,
   TrendingUp,
   Trophy,
+  AlertTriangle,
 } from "lucide-react";
 
 const SidebarProfesor = () => {
@@ -135,6 +136,20 @@ const SidebarProfesor = () => {
         >
           <TrendingUp size={20} />
           <span>Progreso</span>
+        </NavLink>
+
+        <NavLink
+          to="alertas"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-green-100 text-green-700"
+                : "text-gray-600 hover:bg-gray-100"
+            }`
+          }
+        >
+          <AlertTriangle size={20} />
+          <span>Alertas</span>
         </NavLink>
 
         <NavLink

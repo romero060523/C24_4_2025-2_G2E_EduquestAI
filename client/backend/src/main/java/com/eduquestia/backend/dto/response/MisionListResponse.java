@@ -2,6 +2,7 @@ package com.eduquestia.backend.dto.response;
 
 import com.eduquestia.backend.entity.enums.CategoriaMision;
 import com.eduquestia.backend.entity.enums.DificultadMision;
+import com.eduquestia.backend.entity.enums.TemaVisual;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,9 +21,11 @@ public class MisionListResponse {
     private String descripcionResumida;
     private CategoriaMision categoria;
     private DificultadMision dificultad;
+    private TemaVisual temaVisual;
     private Integer puntosRecompensa;
     private LocalDateTime fechaLimite;
     private Boolean activo;
+    private UUID cursoId; // ID del curso
     private String cursoNombre;
     private Integer estudiantesCompletados;
     private Integer totalEstudiantes;

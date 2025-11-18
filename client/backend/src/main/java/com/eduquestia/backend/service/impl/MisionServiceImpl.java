@@ -9,6 +9,7 @@ import com.eduquestia.backend.dto.response.*;
 import com.eduquestia.backend.entity.*;
 import com.eduquestia.backend.entity.enums.CategoriaMision;
 import com.eduquestia.backend.entity.enums.EstadoEntrega;
+import com.eduquestia.backend.entity.enums.TemaVisual;
 import com.eduquestia.backend.exceptions.ResourceNotFoundException;
 import com.eduquestia.backend.exceptions.UnauthorizedException;
 import com.eduquestia.backend.exceptions.ValidationException;
@@ -93,6 +94,9 @@ public class MisionServiceImpl implements MisionService {
         mision.setDificultad(request.getDificultad());
         mision.setPuntosRecompensa(request.getPuntosRecompensa());
         mision.setExperienciaRecompensa(request.getExperienciaRecompensa());
+        mision.setMonedasRecompensa(request.getMonedasRecompensa());
+        mision.setSemanaClase(request.getSemanaClase());
+        mision.setTemaVisual(request.getTemaVisual() != null ? request.getTemaVisual() : TemaVisual.DEFAULT);
         mision.setFechaInicio(request.getFechaInicio());
         mision.setFechaLimite(request.getFechaLimite());
         mision.setRequisitosPrevios(request.getRequisitosPrevios());
@@ -217,6 +221,12 @@ public class MisionServiceImpl implements MisionService {
             }
             if (request.getExperienciaRecompensa() != null) {
                 mision.setExperienciaRecompensa(request.getExperienciaRecompensa());
+            }
+            if (request.getMonedasRecompensa() != null) {
+                mision.setMonedasRecompensa(request.getMonedasRecompensa());
+            }
+            if (request.getSemanaClase() != null) {
+                mision.setSemanaClase(request.getSemanaClase());
             }
             if (request.getFechaInicio() != null) {
                 mision.setFechaInicio(request.getFechaInicio());
@@ -343,14 +353,20 @@ public class MisionServiceImpl implements MisionService {
                 progreso.setEstudiante(estudiante);
                 progreso.setPorcentajeCompletado(0);
                 progreso.setCompletada(false);
+                progreso.setTiempoDedicadoMinutos(0);
+                progreso.setUltimaActividad(LocalDateTime.now());
                 progresoRepository.save(progreso);
 
-                // Crear entrada de entrega vacía
-                EntregaMision entrega = new EntregaMision();
-                entrega.setMision(mision);
-                entrega.setEstudiante(estudiante);
-                entrega.setEstado(EstadoEntrega.PENDIENTE);
-                entregaRepository.save(entrega);
+                // Crear entrada de entrega vacía si no existe
+                if (entregaRepository.findByMisionIdAndEstudianteId(misionId, estudianteId).isEmpty()) {
+                    EntregaMision entrega = new EntregaMision();
+                    entrega.setMision(mision);
+                    entrega.setEstudiante(estudiante);
+                    entrega.setEstado(EstadoEntrega.PENDIENTE);
+                    entrega.setIntentos(1);
+                    entrega.setFechaCreacion(LocalDateTime.now());
+                    entregaRepository.save(entrega);
+                }
 
                 // Crear notificación
                 notificacionService.crearNotificacionNuevaMision(estudiante, mision);
@@ -358,6 +374,25 @@ public class MisionServiceImpl implements MisionService {
         }
 
         log.info("Misión asignada exitosamente a {} estudiantes", estudiantesIds.size());
+    }
+
+    @Override
+    @Transactional
+    public void reasignarMisionATodosEstudiantes(UUID misionId, UUID profesorId) {
+        log.info("Reasignando misión {} a todos los estudiantes del curso", misionId);
+
+        Mision mision = misionRepository.findById(misionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Misión no encontrada con ID: " + misionId));
+
+        // Verificar que el profesor sea el dueño
+        if (!mision.getProfesor().getId().equals(profesorId)) {
+            throw new UnauthorizedException("No tienes permiso para reasignar esta misión");
+        }
+
+        // Usar el mismo método que se usa al crear la misión
+        crearProgresoInicialParaEstudiantes(mision);
+
+        log.info("Misión reasignada exitosamente a todos los estudiantes del curso");
     }
 
     // ========== MÉTODOS AUXILIARES PRIVADOS ==========
@@ -413,19 +448,28 @@ public class MisionServiceImpl implements MisionService {
 
         for (UUID estudianteId : estudiantesIds) {
             usuarioRepository.findById(estudianteId).ifPresent(estudiante -> {
+                // Verificar si ya existe progreso para evitar duplicados
+                if (progresoRepository.findByMisionIdAndEstudianteId(mision.getId(), estudianteId).isEmpty()) {
                 ProgresoMision progreso = new ProgresoMision();
                 progreso.setMision(mision);
                 progreso.setEstudiante(estudiante);
                 progreso.setPorcentajeCompletado(0);
                 progreso.setCompletada(false);
+                    progreso.setTiempoDedicadoMinutos(0);
+                    progreso.setUltimaActividad(LocalDateTime.now());
                 progresoRepository.save(progreso);
 
-                // Crear entrada de entrega vacía
+                    // Crear entrada de entrega vacía si no existe
+                    if (entregaRepository.findByMisionIdAndEstudianteId(mision.getId(), estudianteId).isEmpty()) {
                 EntregaMision entrega = new EntregaMision();
                 entrega.setMision(mision);
                 entrega.setEstudiante(estudiante);
                 entrega.setEstado(EstadoEntrega.PENDIENTE);
+                        entrega.setIntentos(1);
+                        entrega.setFechaCreacion(LocalDateTime.now());
                 entregaRepository.save(entrega);
+                    }
+                }
             });
         }
     }
@@ -495,6 +539,9 @@ public class MisionServiceImpl implements MisionService {
                 .dificultad(mision.getDificultad())
                 .puntosRecompensa(mision.getPuntosRecompensa())
                 .experienciaRecompensa(mision.getExperienciaRecompensa())
+                .monedasRecompensa(mision.getMonedasRecompensa())
+                .semanaClase(mision.getSemanaClase())
+                .temaVisual(mision.getTemaVisual())
                 .fechaInicio(mision.getFechaInicio())
                 .fechaLimite(mision.getFechaLimite())
                 .activo(mision.getActivo())
@@ -521,9 +568,11 @@ public class MisionServiceImpl implements MisionService {
                 .descripcionResumida(descripcionResumida)
                 .categoria(mision.getCategoria())
                 .dificultad(mision.getDificultad())
+                .temaVisual(mision.getTemaVisual())
                 .puntosRecompensa(mision.getPuntosRecompensa())
                 .fechaLimite(mision.getFechaLimite())
                 .activo(mision.getActivo())
+                .cursoId(mision.getCurso().getId())
                 .cursoNombre(mision.getCurso().getNombre())
                 .estudiantesCompletados(completados.intValue())
                 .totalEstudiantes(totalEstudiantes.intValue())
@@ -555,6 +604,9 @@ public class MisionServiceImpl implements MisionService {
                             .dificultad(mision.getDificultad())
                             .puntosRecompensa(mision.getPuntosRecompensa())
                             .experienciaRecompensa(mision.getExperienciaRecompensa())
+                            .monedasRecompensa(mision.getMonedasRecompensa())
+                            .semanaClase(mision.getSemanaClase())
+                            .temaVisual(mision.getTemaVisual())
                             .fechaInicio(mision.getFechaInicio())
                             .fechaLimite(mision.getFechaLimite())
                             .activo(mision.getActivo())
@@ -648,6 +700,9 @@ public class MisionServiceImpl implements MisionService {
                 .dificultad(mision.getDificultad())
                 .puntosRecompensa(mision.getPuntosRecompensa())
                 .experienciaRecompensa(mision.getExperienciaRecompensa())
+                .monedasRecompensa(mision.getMonedasRecompensa())
+                .semanaClase(mision.getSemanaClase())
+                .temaVisual(mision.getTemaVisual())
                 .fechaInicio(mision.getFechaInicio())
                 .fechaLimite(mision.getFechaLimite())
                 .activo(mision.getActivo())

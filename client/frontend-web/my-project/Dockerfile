@@ -7,8 +7,8 @@ WORKDIR /app
 # Copiar archivos de dependencias
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm ci
+# Instalar dependencias (usando --legacy-peer-deps para resolver conflictos con React 19)
+RUN npm install --legacy-peer-deps
 
 # Copiar el resto de archivos del proyecto
 COPY . .

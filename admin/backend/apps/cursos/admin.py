@@ -2,6 +2,17 @@
 from .models import Curso, Inscripcion, CursoProfesor
 
 
+class InscripcionInline(admin.TabularInline):
+    """Inline para agregar estudiantes directamente desde el curso"""
+    model = Inscripcion
+    extra = 1
+    fields = ['estudiante', 'estado', 'fecha_inscripcion']
+    readonly_fields = ['fecha_inscripcion']
+    autocomplete_fields = ['estudiante']
+    verbose_name = 'Estudiante Inscrito'
+    verbose_name_plural = 'Estudiantes Inscritos'
+
+
 @admin.register(Curso)
 class CursoAdmin(admin.ModelAdmin):
     list_display = ['codigo_curso', 'nombre', 'activo', 'fecha_inicio', 
@@ -10,6 +21,7 @@ class CursoAdmin(admin.ModelAdmin):
     search_fields = ['codigo_curso', 'nombre', 'descripcion']
     readonly_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
     ordering = ['-fecha_creacion']
+    inlines = [InscripcionInline]
     
     fieldsets = (
         ('Información Básica', {
@@ -39,7 +51,7 @@ class InscripcionAdmin(admin.ModelAdmin):
     search_fields = ['estudiante__username', 'estudiante__email', 
                      'estudiante__nombre_completo', 'curso__nombre', 'curso__codigo_curso']
     readonly_fields = ['id', 'fecha_inscripcion']
-    raw_id_fields = ['estudiante', 'curso']
+    autocomplete_fields = ['estudiante', 'curso']
     ordering = ['-fecha_inscripcion']
     
     fieldsets = (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Coins, Calendar } from "lucide-react";
 import { apiService } from "../services/api";
 import type { CrearMisionDTO, Curso } from "../types";
 
@@ -22,6 +22,9 @@ const CrearMisionModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
     dificultad: "FACIL",
     puntosRecompensa: 100,
     experienciaRecompensa: 50,
+    monedasRecompensa: 0,
+    semanaClase: undefined,
+    temaVisual: "DEFAULT",
     fechaInicio: "",
     fechaLimite: "",
     cursoId: "",
@@ -68,8 +71,13 @@ const CrearMisionModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === "puntosRecompensa" || name === "experienciaRecompensa"
-          ? parseInt(value) || 0
+        name === "puntosRecompensa" || 
+        name === "experienciaRecompensa" || 
+        name === "monedasRecompensa" ||
+        name === "semanaClase"
+          ? (value === "" ? (name === "semanaClase" ? undefined : 0) : parseInt(value) || 0)
+          : name === "temaVisual"
+          ? value
           : value,
     }));
   };
@@ -103,6 +111,9 @@ const CrearMisionModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
         dificultad: "FACIL",
         puntosRecompensa: 100,
         experienciaRecompensa: 50,
+        monedasRecompensa: 0,
+        semanaClase: undefined,
+        temaVisual: "DEFAULT",
         fechaInicio: "",
         fechaLimite: "",
         cursoId: "",
@@ -272,45 +283,127 @@ const CrearMisionModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
             </select>
           </div>
 
-          {/* Puntos y Experiencia */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="puntosRecompensa"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Puntos <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                id="puntosRecompensa"
-                name="puntosRecompensa"
-                value={formData.puntosRecompensa}
-                onChange={handleChange}
-                required
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+          {/* Recompensas Gamificadas */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+              Recompensas Gamificadas
+            </h3>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label
+                  htmlFor="puntosRecompensa"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Puntos <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="puntosRecompensa"
+                  name="puntosRecompensa"
+                  value={formData.puntosRecompensa}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="experienciaRecompensa"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Experiencia <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                id="experienciaRecompensa"
-                name="experienciaRecompensa"
-                value={formData.experienciaRecompensa}
-                onChange={handleChange}
-                required
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div>
+                <label
+                  htmlFor="experienciaRecompensa"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Experiencia <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="experienciaRecompensa"
+                  name="experienciaRecompensa"
+                  value={formData.experienciaRecompensa}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="monedasRecompensa"
+                  className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1"
+                >
+                  <Coins className="w-4 h-4 text-yellow-500" />
+                  Monedas <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="monedasRecompensa"
+                  name="monedasRecompensa"
+                  value={formData.monedasRecompensa}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  placeholder="0"
+                />
+              </div>
             </div>
+          </div>
+
+          {/* Tema Visual - Gamificación */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border-2 border-purple-200">
+            <label
+              htmlFor="temaVisual"
+              className="block text-sm font-semibold text-gray-800 mb-2"
+            >
+              🎨 Tema Visual de la Misión
+            </label>
+            <select
+              id="temaVisual"
+              name="temaVisual"
+              value={formData.temaVisual || "DEFAULT"}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-800 font-medium"
+            >
+              <option value="DEFAULT">📚 Por defecto</option>
+              <option value="MEDIEVAL">🏰 Medieval</option>
+              <option value="ANIME">🎌 Anime</option>
+              <option value="ESPACIAL">🚀 Espacial</option>
+              <option value="FANTASIA">✨ Fantasía</option>
+              <option value="CIENCIA">🔬 Ciencia</option>
+              <option value="NATURALEZA">🌿 Naturaleza</option>
+              <option value="URBANO">🏙️ Urbano</option>
+              <option value="OCEANO">🌊 Océano</option>
+            </select>
+            <p className="text-xs text-gray-600 mt-2">
+              Elige un tema visual para hacer la misión más atractiva y gamificada
+            </p>
+          </div>
+
+          {/* Semana de Clase */}
+          <div>
+            <label
+              htmlFor="semanaClase"
+              className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1"
+            >
+              <Calendar className="w-4 h-4 text-blue-500" />
+              Semana de Clase (opcional)
+            </label>
+            <select
+              id="semanaClase"
+              name="semanaClase"
+              value={formData.semanaClase || ""}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Selecciona una semana</option>
+              {Array.from({ length: 20 }, (_, i) => i + 1).map((semana) => (
+                <option key={semana} value={semana}>
+                  Semana {semana}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Fechas */}

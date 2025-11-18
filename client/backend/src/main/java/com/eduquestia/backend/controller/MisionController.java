@@ -214,6 +214,24 @@ public class MisionController {
         );
     }
 
+    /**
+     * Reasignar misión a todos los estudiantes del curso
+     * POST /api/v1/missions/{id}/reasignar-todos
+     */
+    @PostMapping("/{id}/reasignar-todos")
+    public ResponseEntity<ApiResponse<Void>> reasignarMisionATodosEstudiantes(
+            @PathVariable UUID id,
+            @RequestHeader("X-Profesor-Id") UUID profesorId) {
+
+        log.info("POST /misiones/{}/reasignar-todos - Reasignar a todos los estudiantes", id);
+
+        misionService.reasignarMisionATodosEstudiantes(id, profesorId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "Misión reasignada exitosamente a todos los estudiantes del curso")
+        );
+    }
+
     // ========== ENDPOINTS PARA ESTUDIANTES ==========
 
     /**

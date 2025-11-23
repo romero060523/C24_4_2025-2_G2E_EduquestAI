@@ -73,6 +73,8 @@ services:
       # Django (admin-backend) es responsable de crear y gestionar la tabla 'usuario'
       # update: crea/actualiza tablas de Spring Boot que referencian a 'usuario'
       JPA_DDL_AUTO: update
+      # Gemini API Key para Spring AI
+      GEMINI_API_KEY: AIzaSyAJyjld5wWkaGmEbzUh3RdmVRKgGe7dEYA
     ports:
       - "8081:8080"
     depends_on:

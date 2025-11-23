@@ -468,7 +468,9 @@ class ApiService {
   // ==================== RECOMPENSAS MANUALES ====================
   // Historia de Usuario #12: Recompensas manuales
 
-  async otorgarRecompensaManual(request: OtorgarRecompensaRequest): Promise<RecompensaManualResponse> {
+  async otorgarRecompensaManual(
+    request: OtorgarRecompensaRequest
+  ): Promise<RecompensaManualResponse> {
     const response = await this.api.post<{
       success: boolean;
       data: RecompensaManualResponse;
@@ -477,7 +479,9 @@ class ApiService {
     return response.data.data;
   }
 
-  async obtenerRecompensasPorEstudiante(estudianteId: string): Promise<RecompensaManualResponse[]> {
+  async obtenerRecompensasPorEstudiante(
+    estudianteId: string
+  ): Promise<RecompensaManualResponse[]> {
     const response = await this.api.get<{
       success: boolean;
       data: RecompensaManualResponse[];
@@ -486,7 +490,9 @@ class ApiService {
     return response.data.data;
   }
 
-  async obtenerRecompensasPorProfesor(profesorId: string): Promise<RecompensaManualResponse[]> {
+  async obtenerRecompensasPorProfesor(
+    profesorId: string
+  ): Promise<RecompensaManualResponse[]> {
     const response = await this.api.get<{
       success: boolean;
       data: RecompensaManualResponse[];
@@ -498,7 +504,10 @@ class ApiService {
   /**
    * Subir un archivo (PDF, imagen o video)
    */
-  async subirArchivo(archivo: File, tipo: "PDF" | "IMAGEN" | "VIDEO"): Promise<string> {
+  async subirArchivo(
+    archivo: File,
+    tipo: "PDF" | "IMAGEN" | "VIDEO"
+  ): Promise<string> {
     const formData = new FormData();
     formData.append("archivo", archivo);
     formData.append("tipo", tipo);
@@ -518,6 +527,17 @@ class ApiService {
     }
 
     return response.data.data;
+  }
+
+  // ==================== CHAT CON IA ====================
+
+  async chatConIA(mensaje: string): Promise<string> {
+    const encodedMessage = encodeURIComponent(mensaje);
+    const response = await this.api.get<string>(`/chat?mensaje=${encodedMessage}`, {
+      responseType: 'text' as any,
+    });
+    // El backend devuelve texto plano directamente
+    return typeof response.data === 'string' ? response.data : String(response.data);
   }
 }
 

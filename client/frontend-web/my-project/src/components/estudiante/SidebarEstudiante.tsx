@@ -7,6 +7,7 @@ import {
   Users,
   BarChart3,
   Sparkles,
+  MessageSquare,
   LogOut,
 } from "lucide-react";
 
@@ -128,6 +129,20 @@ const SidebarEstudiante = () => {
         >
           <BarChart3 size={20} />
           <span>Ranking</span>
+        </NavLink>
+
+        <NavLink
+          to="chat-ia"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-green-50 text-blue-700"
+                : "text-gray-600 hover:bg-gray-50"
+            }`
+          }
+        >
+          <MessageSquare size={20} />
+          <span>Chat IA</span>
         </NavLink>
 
         <NavLink

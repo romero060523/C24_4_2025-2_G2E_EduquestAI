@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Maximize2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -14,6 +16,8 @@ interface ChatWidgetProps {
 }
 
 export default function ChatWidget({ userId, userRole }: ChatWidgetProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -97,6 +101,16 @@ export default function ChatWidget({ userId, userRole }: ChatWidgetProps) {
     }
   };
 
+  const handleOpenFullChat = () => {
+    const basePath = userRole === "profesor" ? "/profesor" : "/estudiante";
+    navigate(`${basePath}/chat-ia`);
+  };
+
+  // No mostrar el widget si estamos en la página de chat completo
+  if (location.pathname.includes("/chat-ia")) {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <AnimatePresence>
@@ -118,12 +132,21 @@ export default function ChatWidget({ userId, userRole }: ChatWidgetProps) {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenFullChat}
+                  className="text-white/80 hover:text-white transition-colors"
+                  title="Abrir chat completo"
+                >
+                  <Maximize2 size={18} />
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
@@ -142,7 +165,25 @@ export default function ChatWidget({ userId, userRole }: ChatWidgetProps) {
                         : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-tl-none shadow-sm"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                    {msg.sender === "ai" ? (
+                      <div className="text-sm markdown-content">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                            em: ({ children }) => <em className="italic">{children}</em>,
+                            ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                            li: ({ children }) => <li className="ml-2">{children}</li>,
+                            code: ({ children }) => <code className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+                          }}
+                        >
+                          {msg.text}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                    )}
                   </div>
                 </div>
               ))}

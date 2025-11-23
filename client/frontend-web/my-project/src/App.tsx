@@ -17,6 +17,7 @@ import RecompensasEstudiante from "./pages/estudiante/RecompensasEstudiante";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RankingPage from "./pages/estudiante/RankingPage";
 import PerfilGamificado from "./pages/estudiante/PerfilGamificado";
+import ChatIAPage from "./pages/estudiante/ChatIAPage";
 import AlertasPage from "./pages/profesor/AlertasPage";
 import ConfigurarAlertasPage from "./pages/profesor/ConfigurarAlertasPage";
 
@@ -64,6 +65,7 @@ function App() {
         <Route path="misiones" element={<MisionesEstudiante />} />
         <Route path="recompensas" element={<RecompensasEstudiante />} />
         <Route path="ranking" element={<RankingPage />} />
+        <Route path="chat-ia" element={<ChatIAPage />} />
         <Route path="perfil" element={<PerfilGamificado />} />
 
         {/* Redirección por defecto */}

@@ -1,5 +1,6 @@
 import React from "react";
 import { useAuth } from "../../hooks/useAuth";
+import SugerenciasIACard from "../../components/estudiante/SugerenciasIACard";
 
 const DashboardEstudiante: React.FC = () => {
   const { usuario } = useAuth();
@@ -55,6 +56,11 @@ const DashboardEstudiante: React.FC = () => {
           <p className="text-3xl font-bold text-gray-900">-</p>
           <p className="text-xs text-gray-500 mt-1">en el ranking</p>
         </div>
+      </div>
+
+      {/* Sugerencias de IA */}
+      <div className="mb-8">
+        <SugerenciasIACard />
       </div>
 
       {/* Misiones Disponibles */}

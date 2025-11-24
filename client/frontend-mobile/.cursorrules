@@ -1,0 +1,225 @@
+# Agente Mobile - Android (Kotlin + Jetpack Compose)
+
+## Especialización
+Eres un experto en **Android**, **Kotlin**, y **Jetpack Compose**. Tu foco es crear apps móviles modernas, fluidas y con excelente UX siguiendo Material Design 3.
+
+## Stack Tecnológico
+- **Lenguaje**: Kotlin
+- **UI Framework**: Jetpack Compose
+- **Arquitectura**: MVVM (Model-View-ViewModel)
+- **Material Design**: Material 3
+- **Navegación**: Navigation Compose
+- **Build**: Gradle (Kotlin DSL)
+- **Min SDK**: 36 (Android 14+)
+- **Target SDK**: 36
+
+## Estructura del Proyecto
+```
+app/src/main/java/com/eduquestia/frontend_mobile/
+├── ui/
+│   ├── screens/          # Pantallas principales (@Composable)
+│   ├── components/       # Componentes reutilizables
+│   ├── navigation/       # NavGraph, Screen routes
+│   └── theme/            # Colors, Typography, Theme
+├── data/
+│   ├── model/            # Data classes / DTOs
+│   ├── repository/        # Repositorios (fuente única de verdad)
+│   └── remote/           # API services (Retrofit/Ktor)
+├── domain/
+│   └── usecase/          # Casos de uso (lógica de negocio)
+└── util/                 # Utilidades, extensiones
+```
+
+## Convenciones de Código
+
+### Nomenclatura
+- **Archivos**: PascalCase (`HomeScreen.kt`, `MisionCard.kt`)
+- **Funciones Composable**: PascalCase (`@Composable fun HomeScreen()`)
+- **Funciones normales**: camelCase (`obtenerMisiones`, `crearMision`)
+- **Variables**: camelCase (`usuarioActual`, `misionesActivas`)
+- **Constantes**: UPPER_SNAKE_CASE (`MAX_RETRIES`, `API_BASE_URL`)
+- **Data Classes**: PascalCase (`Usuario`, `Mision`)
+
+### Composable Functions
+- Siempre usar `@Composable` annotation
+- Nombres en PascalCase (como componentes React)
+- Parámetros: usar `Modifier = Modifier` como primer parámetro opcional
+- Siempre agregar `contentDescription` a `Icon` e `Image`
+- Usar `remember` para valores que no deben recalcularse
+- Usar `LaunchedEffect` para efectos secundarios
+
+### Estado
+- **Local**: `remember { mutableStateOf() }` o `by remember { mutableStateOf() }`
+- **ViewModel**: `StateFlow` o `Flow` para estado observable
+- **UI State**: Data classes para estados complejos
+- Usar `collectAsState()` en composables para observar ViewModel
+
+### Navegación
+- Usar `Navigation Compose`
+- Definir `Screen` sealed class en `navigation/`
+- `NavHost` en `NavGraph.kt`
+- Navegar con `navController.navigate(route)`
+- Pasar parámetros con tipo-safe arguments cuando sea posible
+
+### Material Design 3
+- Usar componentes de Material 3: `Card`, `Button`, `TextField`, etc.
+- Colores del tema: `MaterialTheme.colorScheme`
+- No hardcodear colores, usar `EduQuestBlue`, `EduQuestPurple`, etc.
+- Tipografía: `MaterialTheme.typography`
+- Espaciado: usar `dp` (density-independent pixels)
+
+## Reglas Específicas
+
+### Colores y Tema
+- Colores definidos en `ui/theme/Color.kt`
+- Usar `EduQuestBlue`, `EduQuestPurple`, `EduQuestDarkBlue`
+- Texto: `TextPrimary`, `TextSecondary`, `TextLight`
+- Accesibilidad: contrastes adecuados
+- Dark mode: soportar (usar `isSystemInDarkTheme()`)
+
+### API y Networking
+- Base URL: `http://10.0.2.2:8080/api/v1` (Android Emulator)
+- Usar **Retrofit** o **Ktor Client** para HTTP
+- DTOs: data classes con `@Serializable` (Kotlinx Serialization)
+- Manejar errores con try-catch o Result
+- Estados: Loading, Success, Error
+
+### Arquitectura MVVM
+- **Model**: Data classes, DTOs, Entities
+- **View**: Composable functions (screens, components)
+- **ViewModel**: Lógica de negocio, estado, llamadas a Repository
+- **Repository**: Fuente única de verdad, abstrae API/local storage
+
+### ViewModel
+- Extender `ViewModel`
+- Usar `StateFlow` o `Flow` para estado
+- Funciones suspend para operaciones async
+- Usar `viewModelScope.launch` para coroutines
+- Exponer estados: `UiState` data class
+
+### Dependency Injection
+- Usar **Hilt** o **Koin** (preferible Hilt)
+- `@HiltViewModel` para ViewModels
+- `@Inject` para dependencias
+- Módulos en `di/` package
+
+### Imágenes
+- Usar **Coil** para carga de imágenes
+- `AsyncImage` de Coil Compose
+- Placeholders y error states
+- Caché automático
+
+## Patrones a Seguir
+
+### Crear Nueva Pantalla
+1. Crear `Screen` object en `navigation/Screen.kt`
+2. Crear composable en `ui/screens/`
+3. Crear ViewModel en `domain/` o `ui/viewmodel/`
+4. Crear Repository si es necesario
+5. Crear API Service en `data/remote/`
+6. Agregar ruta en `NavGraph.kt`
+7. Manejar estados: Loading, Success, Error
+
+### Ejemplo de Screen
+```kotlin
+@Composable
+fun HomeScreen(
+    navController: NavController,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    when (val state = uiState) {
+        is UiState.Loading -> LoadingIndicator()
+        is UiState.Success -> {
+            HomeContent(
+                data = state.data,
+                onNavigate = { route -> navController.navigate(route) }
+            )
+        }
+        is UiState.Error -> ErrorMessage(
+            message = state.message,
+            onRetry = { viewModel.loadData() }
+        )
+    }
+}
+```
+
+### Ejemplo de ViewModel
+```kotlin
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val repository: MisionRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<UiState<List<Mision>>>(UiState.Loading)
+    val uiState: StateFlow<UiState<List<Mision>>> = _uiState.asStateFlow()
+
+    init {
+        loadMisiones()
+    }
+
+    fun loadMisiones() {
+        viewModelScope.launch {
+            _uiState.value = UiState.Loading
+            try {
+                val misiones = repository.obtenerMisiones()
+                _uiState.value = UiState.Success(misiones)
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "Error desconocido")
+            }
+        }
+    }
+}
+```
+
+### Ejemplo de Componente
+```kotlin
+@Composable
+fun MisionCard(
+    mision: Mision,
+    onCompletar: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = mision.titulo,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = mision.descripcion,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { onCompletar(mision.id) }) {
+                Text("Completar")
+            }
+        }
+    }
+}
+```
+
+## Contexto del Proyecto
+- **Gamificación**: XP, niveles, misiones, recompensas, ranking
+- **Roles**: Estudiante y Profesor (pantallas diferentes)
+- **Navegación**: BottomNavBar + NavigationDrawer
+- **Tema**: Colores EduQuest personalizados
+
+## Cuando Me Preguntes
+- Prioriza UX fluida y animaciones suaves
+- Siempre maneja estados de loading/error
+- Usa Material 3 components
+- Componentes pequeños y reutilizables
+- MVVM architecture
+- Accesibilidad (contentDescription, etc.)
+
+

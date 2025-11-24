@@ -20,8 +20,11 @@ import PerfilGamificado from "./pages/estudiante/PerfilGamificado";
 import ChatIAPage from "./pages/estudiante/ChatIAPage";
 import AlertasPage from "./pages/profesor/AlertasPage";
 import ConfigurarAlertasPage from "./pages/profesor/ConfigurarAlertasPage";
+import { useTema } from "./hooks/useTema";
 
 function App() {
+  // Cargar tema al iniciar
+  useTema();
   return (
     <Routes>
       {/* Ruta de login unificada */}

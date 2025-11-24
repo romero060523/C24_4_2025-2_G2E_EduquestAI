@@ -1,5 +1,15 @@
 @import "tailwindcss";
+
+/* Variables CSS para tema personalizado */
+:root {
+  --color-primario: #3B82F6;
+  --color-secundario: #6366F1;
+  --color-acento: #8B5CF6;
+  --color-fondo: #F9FAFB;
+}
+
 /* Solo normalización mínima, sin estilos globales que interfieran con el login */
 body {
   margin: 0;
+  background-color: var(--color-fondo);
 }

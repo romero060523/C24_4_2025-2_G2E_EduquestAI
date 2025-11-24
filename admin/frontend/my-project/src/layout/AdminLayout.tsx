@@ -6,6 +6,7 @@ import {
   LogOut,
   Settings,
   BarChart3,
+  Palette,
 } from "lucide-react";
 
 export default function AdminLayout() {
@@ -39,6 +40,11 @@ export default function AdminLayout() {
       path: "/admin/reportes",
       label: "Reportes",
       icon: BarChart3,
+    },
+    {
+      path: "/admin/configuracion-visual",
+      label: "Configuración Visual",
+      icon: Palette,
     },
   ];
 
@@ -189,6 +195,8 @@ export default function AdminLayout() {
                   return "Configura las reglas del sistema";
                 } else if (pathName === "/admin/reportes") {
                   return "Visualiza reportes y estadísticas generales del sistema";
+                } else if (pathName === "/admin/configuracion-visual") {
+                  return "Configura el aspecto visual del sistema (logo, colores, etc.)";
                 }
                 return "";
               })()}

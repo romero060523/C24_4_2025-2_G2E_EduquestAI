@@ -20,6 +20,15 @@ export function useTema() {
         console.error("Error cargando tema desde localStorage:", e);
       }
     }
+    
+    // Recargar tema cada 30 segundos para detectar cambios desde el admin
+    const intervalId = setInterval(() => {
+      cargarTema();
+    }, 30000);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   const cargarTema = async () => {
@@ -53,6 +62,20 @@ export function useTema() {
     root.style.setProperty("--color-secundario", config.color_secundario);
     root.style.setProperty("--color-acento", config.color_acento);
     root.style.setProperty("--color-fondo", config.color_fondo);
+    
+    // Convertir colores hex a RGB para usar con opacidad
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : null;
+    };
+    
+    const rgbPrimario = hexToRgb(config.color_primario);
+    const rgbSecundario = hexToRgb(config.color_secundario);
+    const rgbAcento = hexToRgb(config.color_acento);
+    
+    if (rgbPrimario) root.style.setProperty("--color-primario-rgb", rgbPrimario);
+    if (rgbSecundario) root.style.setProperty("--color-secundario-rgb", rgbSecundario);
+    if (rgbAcento) root.style.setProperty("--color-acento-rgb", rgbAcento);
   };
 
   return { tema, loading, aplicarTema, recargarTema: cargarTema };

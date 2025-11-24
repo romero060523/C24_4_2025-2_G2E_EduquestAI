@@ -4,6 +4,7 @@ import { configuracionApi, type ConfiguracionVisual } from "../services/configur
 
 export default function ConfiguracionVisual() {
   const [config, setConfig] = useState<ConfiguracionVisual | null>(null);
+  const [configOriginal, setConfigOriginal] = useState<ConfiguracionVisual | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -19,10 +20,12 @@ export default function ConfiguracionVisual() {
       setError("");
       const data = await configuracionApi.obtenerActiva();
       setConfig(data);
+      setConfigOriginal(JSON.parse(JSON.stringify(data))); // Guardar copia para restaurar
+      aplicarTema(data);
     } catch (err: any) {
       console.error("Error cargando configuración:", err);
       // Si no existe configuración, crear una por defecto
-      setConfig({
+      const configDefault = {
         logo_url: "",
         nombre_institucion: "EduQuest",
         color_primario: "#3B82F6",
@@ -30,9 +33,23 @@ export default function ConfiguracionVisual() {
         color_acento: "#8B5CF6",
         color_fondo: "#F9FAFB",
         activo: true,
-      });
+      };
+      setConfig(configDefault);
+      setConfigOriginal(JSON.parse(JSON.stringify(configDefault)));
+      aplicarTema(configDefault);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const restaurarConfiguracion = () => {
+    if (configOriginal) {
+      setConfig(JSON.parse(JSON.stringify(configOriginal)));
+      aplicarTema(configOriginal);
+      setSuccess("Configuración restaurada");
+      setTimeout(() => setSuccess(""), 3000);
+    } else {
+      cargarConfiguracion();
     }
   };
 
@@ -59,8 +76,22 @@ export default function ConfiguracionVisual() {
 
       setSuccess("Configuración guardada exitosamente");
       
+      // Recargar configuración actualizada desde el servidor
+      const configActualizada = await configuracionApi.obtenerActiva();
+      setConfig(configActualizada);
+      
       // Aplicar tema inmediatamente
-      aplicarTema(config);
+      aplicarTema(configActualizada);
+      
+      // Actualizar configuración original
+      setConfigOriginal(JSON.parse(JSON.stringify(configActualizada)));
+      
+      // Notificar a otros componentes que el tema cambió (con múltiples eventos para asegurar que se capture)
+      window.dispatchEvent(new CustomEvent('temaActualizado', { detail: configActualizada }));
+      window.dispatchEvent(new Event('storage')); // Disparar evento storage para sincronizar
+      
+      // Forzar re-render de componentes que usan el tema
+      document.body.style.setProperty('--force-theme-update', Date.now().toString());
       
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
@@ -79,15 +110,44 @@ export default function ConfiguracionVisual() {
     root.style.setProperty("--color-acento", configData.color_acento);
     root.style.setProperty("--color-fondo", configData.color_fondo);
     
+    // Aplicar logo y nombre de institución como atributos de datos para acceso global
+    root.setAttribute("data-logo-url", configData.logo_url || "");
+    root.setAttribute("data-nombre-institucion", configData.nombre_institucion || "EduQuest");
+    
+    // Convertir colores hex a RGB para usar con opacidad
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : null;
+    };
+    
+    const rgbPrimario = hexToRgb(configData.color_primario);
+    const rgbSecundario = hexToRgb(configData.color_secundario);
+    const rgbAcento = hexToRgb(configData.color_acento);
+    
+    if (rgbPrimario) root.style.setProperty("--color-primario-rgb", rgbPrimario);
+    if (rgbSecundario) root.style.setProperty("--color-secundario-rgb", rgbSecundario);
+    if (rgbAcento) root.style.setProperty("--color-acento-rgb", rgbAcento);
+    
     // Guardar en localStorage para persistencia
     localStorage.setItem("temaConfig", JSON.stringify(configData));
   };
 
+  // Aplicar tema en tiempo real cuando cambian los colores, logo o nombre
   useEffect(() => {
-    if (config) {
+    if (config && !loading) {
       aplicarTema(config);
+      // Notificar cambios en tiempo real
+      window.dispatchEvent(new CustomEvent('temaActualizado', { detail: config }));
     }
-  }, [config]);
+  }, [
+    config?.color_primario, 
+    config?.color_secundario, 
+    config?.color_acento, 
+    config?.color_fondo,
+    config?.logo_url,
+    config?.nombre_institucion,
+    loading
+  ]);
 
   if (loading) {
     return (
@@ -147,28 +207,103 @@ export default function ConfiguracionVisual() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                URL del Logo
+                Logo de la Institución
               </label>
-              <div className="flex items-center gap-3">
+              <p className="text-xs text-gray-500 mb-3">
+                Puedes subir una imagen desde tu computadora o ingresar una URL
+              </p>
+              
+              {/* Opción 1: Subir imagen */}
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-600 mb-2">
+                  Subir imagen desde tu computadora:
+                </label>
                 <input
-                  type="text"
-                  value={config.logo_url}
-                  onChange={(e) => handleChange("logo_url", e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://ejemplo.com/logo.png"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // Validar tamaño (máximo 5MB)
+                      if (file.size > 5 * 1024 * 1024) {
+                        setError("La imagen es demasiado grande. Máximo 5MB.");
+                        setTimeout(() => setError(""), 5000);
+                        return;
+                      }
+                      
+                      // Validar tipo
+                      if (!file.type.startsWith('image/')) {
+                        setError("Por favor selecciona un archivo de imagen válido.");
+                        setTimeout(() => setError(""), 5000);
+                        return;
+                      }
+                      
+                      // Convertir a base64
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        const base64String = reader.result as string;
+                        handleChange("logo_url", base64String);
+                        setSuccess("Imagen cargada exitosamente");
+                        setTimeout(() => setSuccess(""), 3000);
+                      };
+                      reader.onerror = () => {
+                        setError("Error al leer la imagen");
+                        setTimeout(() => setError(""), 5000);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                 />
-                <ImageIcon className="w-5 h-5 text-gray-400" />
               </div>
-              {config.logo_url && (
-                <div className="mt-2">
-                  <img
-                    src={config.logo_url}
-                    alt="Logo preview"
-                    className="h-16 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
+              
+              {/* Opción 2: URL */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">
+                  O ingresa una URL de imagen:
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={config.logo_url}
+                    onChange={(e) => handleChange("logo_url", e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://ejemplo.com/logo.png"
                   />
+                  <ImageIcon className="w-5 h-5 text-gray-400" />
+                </div>
+              </div>
+              
+              {/* Vista previa */}
+              {config.logo_url && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs font-medium text-gray-700 mb-2">Vista previa:</p>
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={config.logo_url}
+                      alt="Logo preview"
+                      className="h-16 object-contain max-w-full"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        const parent = (e.target as HTMLImageElement).parentElement;
+                        if (parent) {
+                          const errorMsg = document.createElement('p');
+                          errorMsg.className = 'text-red-500 text-xs';
+                          errorMsg.textContent = 'Error al cargar la imagen. Verifica la URL o intenta subir una imagen.';
+                          if (!parent.querySelector('.text-red-500')) {
+                            parent.appendChild(errorMsg);
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleChange("logo_url", "")}
+                      className="text-xs text-red-600 hover:text-red-700 font-medium"
+                    >
+                      Eliminar logo
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -185,8 +320,11 @@ export default function ConfiguracionVisual() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Color Primario
+                Color Principal (Botones y Enlaces)
               </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Color que se usa en botones principales, enlaces y elementos destacados
+              </p>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -206,8 +344,11 @@ export default function ConfiguracionVisual() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Color Secundario
+                Color Secundario (Elementos de Apoyo)
               </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Color para elementos secundarios como badges, iconos y complementos
+              </p>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -227,8 +368,11 @@ export default function ConfiguracionVisual() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Color de Acento
+                Color de Acento (Destacados y Alertas)
               </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Color para elementos que necesitan destacar como notificaciones y alertas importantes
+              </p>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -248,8 +392,11 @@ export default function ConfiguracionVisual() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Color de Fondo
+                Color de Fondo (Fondo de Páginas)
               </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Color de fondo general de las páginas y áreas principales
+              </p>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -270,35 +417,47 @@ export default function ConfiguracionVisual() {
 
           {/* Vista Previa */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-700 mb-3">Vista Previa:</p>
-            <div className="flex gap-2">
-              <div
-                className="px-4 py-2 rounded text-white text-sm font-medium"
-                style={{ backgroundColor: config.color_primario }}
-              >
-                Primario
+            <p className="text-sm font-medium text-gray-700 mb-3">Vista Previa de Colores:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="text-center">
+                <div
+                  className="px-4 py-3 rounded text-white text-sm font-medium mb-1"
+                  style={{ backgroundColor: config.color_primario }}
+                >
+                  Botón Principal
+                </div>
+                <p className="text-xs text-gray-600">Color Principal</p>
               </div>
-              <div
-                className="px-4 py-2 rounded text-white text-sm font-medium"
-                style={{ backgroundColor: config.color_secundario }}
-              >
-                Secundario
+              <div className="text-center">
+                <div
+                  className="px-4 py-3 rounded text-white text-sm font-medium mb-1"
+                  style={{ backgroundColor: config.color_secundario }}
+                >
+                  Elemento Secundario
+                </div>
+                <p className="text-xs text-gray-600">Color Secundario</p>
               </div>
-              <div
-                className="px-4 py-2 rounded text-white text-sm font-medium"
-                style={{ backgroundColor: config.color_acento }}
-              >
-                Acento
+              <div className="text-center">
+                <div
+                  className="px-4 py-3 rounded text-white text-sm font-medium mb-1"
+                  style={{ backgroundColor: config.color_acento }}
+                >
+                  Destacado
+                </div>
+                <p className="text-xs text-gray-600">Color de Acento</p>
               </div>
-              <div
-                className="px-4 py-2 rounded text-sm font-medium border"
-                style={{
-                  backgroundColor: config.color_fondo,
-                  color: config.color_primario,
-                  borderColor: config.color_primario,
-                }}
-              >
-                Fondo
+              <div className="text-center">
+                <div
+                  className="px-4 py-3 rounded text-sm font-medium border mb-1"
+                  style={{
+                    backgroundColor: config.color_fondo,
+                    color: config.color_primario,
+                    borderColor: config.color_primario,
+                  }}
+                >
+                  Fondo
+                </div>
+                <p className="text-xs text-gray-600">Color de Fondo</p>
               </div>
             </div>
           </div>
@@ -308,7 +467,7 @@ export default function ConfiguracionVisual() {
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={cargarConfiguracion}
+            onClick={restaurarConfiguracion}
             className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
           >
             <RefreshCw className="w-4 h-4" />
@@ -318,7 +477,7 @@ export default function ConfiguracionVisual() {
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 text-white rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: config.color_primario }}
           >
             {saving ? (

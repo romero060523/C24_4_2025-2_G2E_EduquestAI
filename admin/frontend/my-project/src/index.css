@@ -8,6 +8,64 @@
   --color-fondo: #F9FAFB;
 }
 
+/* Clases CSS personalizadas que usan las variables del tema */
+.bg-tema-primario {
+  background-color: var(--color-primario) !important;
+}
+
+.bg-tema-secundario {
+  background-color: var(--color-secundario) !important;
+}
+
+.bg-tema-acento {
+  background-color: var(--color-acento) !important;
+}
+
+.bg-tema-fondo {
+  background-color: var(--color-fondo) !important;
+}
+
+.text-tema-primario {
+  color: var(--color-primario) !important;
+}
+
+.text-tema-secundario {
+  color: var(--color-secundario) !important;
+}
+
+.text-tema-acento {
+  color: var(--color-acento) !important;
+}
+
+.border-tema-primario {
+  border-color: var(--color-primario) !important;
+}
+
+.border-tema-secundario {
+  border-color: var(--color-secundario) !important;
+}
+
+.border-tema-acento {
+  border-color: var(--color-acento) !important;
+}
+
+.hover\:bg-tema-primario:hover {
+  background-color: var(--color-primario) !important;
+}
+
+.hover\:text-tema-primario:hover {
+  color: var(--color-primario) !important;
+}
+
+/* Gradientes personalizados */
+.bg-gradient-tema-primario {
+  background: linear-gradient(to right, var(--color-primario), var(--color-secundario)) !important;
+}
+
+.bg-gradient-tema-acento {
+  background: linear-gradient(to right, var(--color-secundario), var(--color-acento)) !important;
+}
+
 /* Solo normalización mínima, sin estilos globales que interfieran con el login */
 body {
   margin: 0;

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_prefs")
@@ -61,12 +62,5 @@ class TokenManager(private val context: Context) {
             preferences[TOKEN_KEY] != null
         }.first()
     }
-}
-
-// Helper para obtener el primer valor de un Flow
-suspend fun <T> Flow<T>.first(): T {
-    var value: T? = null
-    collect { value = it }
-    return value!!
 }
 

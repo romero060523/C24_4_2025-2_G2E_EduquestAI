@@ -40,6 +40,17 @@ export default function Dashboard() {
   const [cursoStats, setCursoStats] = useState<CursoStats>({ total: 0, activos: 0 });
   const [loading, setLoading] = useState(true);
 
+  // Función auxiliar para convertir hex a RGB
+  const getRgbFromHex = (hex: string): string => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '59, 130, 246';
+  };
+  
+  // Obtener color primario desde CSS variable
+  const getColorPrimario = () => {
+    return getComputedStyle(document.documentElement).getPropertyValue('--color-primario').trim() || '#3B82F6';
+  };
+
   useEffect(() => {
     cargarDatos();
   }, []);
@@ -83,7 +94,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--color-primario)' }}></div>
       </div>
     );
   }
@@ -113,7 +124,7 @@ export default function Dashboard() {
 
         <Link
           to="/admin/reportes"
-          className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105"
+          className="bg-gradient-tema-primario rounded-lg shadow-lg p-6 text-white hover:opacity-90 transition-all transform hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -155,7 +166,7 @@ export default function Dashboard() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Estudiantes */}
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow" style={{ borderLeft: '4px solid var(--color-primario)' }}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">
@@ -168,8 +179,8 @@ export default function Dashboard() {
                     {estadisticas.estudiantes_activos_mes} activos este mes
                   </p>
                 </div>
-                <div className="bg-blue-100 rounded-full p-3">
-                  <Users className="w-8 h-8 text-blue-600" />
+                <div className="rounded-full p-3" style={{ backgroundColor: `rgba(${getRgbFromHex(getColorPrimario())}, 0.1)` }}>
+                  <Users className="w-8 h-8" style={{ color: 'var(--color-primario)' }} />
                 </div>
               </div>
             </div>
@@ -349,7 +360,8 @@ export default function Dashboard() {
                 </h3>
                 <Link
                   to="/admin/cursos"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                  className="text-sm font-medium flex items-center gap-1 text-tema-primario hover:opacity-80"
+                  style={{ color: 'var(--color-primario)' }}
                 >
                   Ver todos
                   <ArrowRight className="w-4 h-4" />

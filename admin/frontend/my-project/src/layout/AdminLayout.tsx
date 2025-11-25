@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -6,11 +7,74 @@ import {
   LogOut,
   Settings,
   BarChart3,
+  Palette,
 } from "lucide-react";
+import { useTema } from "../hooks/useTema";
 
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { tema } = useTema();
+  const [logoUrl, setLogoUrl] = useState<string>("");
+  const [nombreInstitucion, setNombreInstitucion] = useState<string>("EduQuest");
+
+  useEffect(() => {
+    // Cargar configuración desde localStorage o tema
+    const cargarConfiguracion = () => {
+      const temaGuardado = localStorage.getItem("temaConfig");
+      if (temaGuardado) {
+        try {
+          const config = JSON.parse(temaGuardado);
+          setLogoUrl(config.logo_url || "");
+          setNombreInstitucion(config.nombre_institucion || "EduQuest");
+        } catch (e) {
+          console.error("Error cargando configuración:", e);
+        }
+      } else if (tema) {
+        setLogoUrl(tema.logo_url || "");
+        setNombreInstitucion(tema.nombre_institucion || "EduQuest");
+      }
+    };
+
+    cargarConfiguracion();
+
+    // Escuchar cambios en el tema
+    const handleTemaActualizado = (event: CustomEvent) => {
+      const nuevoTema = event.detail;
+      if (nuevoTema) {
+        setLogoUrl(nuevoTema.logo_url || "");
+        setNombreInstitucion(nuevoTema.nombre_institucion || "EduQuest");
+      }
+    };
+
+    // Escuchar cambios en localStorage
+    const handleStorageChange = () => {
+      cargarConfiguracion();
+    };
+
+    // Escuchar cambios en atributos de datos del root
+    const observer = new MutationObserver(() => {
+      const root = document.documentElement;
+      const nuevoLogo = root.getAttribute("data-logo-url");
+      const nuevoNombre = root.getAttribute("data-nombre-institucion");
+      if (nuevoLogo !== null) setLogoUrl(nuevoLogo);
+      if (nuevoNombre !== null) setNombreInstitucion(nuevoNombre);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-logo-url', 'data-nombre-institucion']
+    });
+
+    window.addEventListener('temaActualizado', handleTemaActualizado as EventListener);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('temaActualizado', handleTemaActualizado as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+      observer.disconnect();
+    };
+  }, [tema]);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -40,6 +104,11 @@ export default function AdminLayout() {
       label: "Reportes",
       icon: BarChart3,
     },
+    {
+      path: "/admin/configuracion-visual",
+      label: "Configuración Visual",
+      icon: Palette,
+    },
   ];
 
   function handleLogout() {
@@ -58,11 +127,31 @@ export default function AdminLayout() {
         {/* Logo */}
         <div className="p-6 border-b border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">⚡</span>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              EduQuest
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={nombreInstitucion}
+                className="flex-shrink-0 w-10 h-10 object-contain rounded-lg"
+                onError={(e) => {
+                  // Si el logo falla, mostrar el icono por defecto
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const parent = target.parentElement;
+                  if (parent && !parent.querySelector('.default-logo-icon')) {
+                    const icon = document.createElement('div');
+                    icon.className = 'default-logo-icon flex-shrink-0 w-10 h-10 bg-gradient-tema-primario rounded-lg flex items-center justify-center';
+                    icon.innerHTML = '<span class="text-white font-bold text-lg">⚡</span>';
+                    parent.insertBefore(icon, target);
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex-shrink-0 w-10 h-10 bg-gradient-tema-primario rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">⚡</span>
+              </div>
+            )}
+            <span className="text-2xl font-bold bg-gradient-tema-primario bg-clip-text text-transparent">
+              {nombreInstitucion}
             </span>
           </div>
         </div>
@@ -77,7 +166,7 @@ export default function AdminLayout() {
                 to={path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                   active
-                    ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg"
+                    ? "bg-gradient-tema-primario text-white shadow-lg"
                     : "text-slate-300 hover:bg-slate-700 hover:text-white"
                 }`}
               >
@@ -189,6 +278,8 @@ export default function AdminLayout() {
                   return "Configura las reglas del sistema";
                 } else if (pathName === "/admin/reportes") {
                   return "Visualiza reportes y estadísticas generales del sistema";
+                } else if (pathName === "/admin/configuracion-visual") {
+                  return "Configura el aspecto visual del sistema (logo, colores, etc.)";
                 }
                 return "";
               })()}

@@ -12,6 +12,7 @@ import com.eduquestia.backend.exceptions.UnauthorizedException;
 import com.eduquestia.backend.exceptions.ValidationException;
 import com.eduquestia.backend.repository.*;
 import com.eduquestia.backend.service.GamificacionService;
+import com.eduquestia.backend.service.GeminiService;
 import com.eduquestia.backend.service.MisionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional
@@ -36,6 +38,7 @@ public class GamificacionServiceImpl implements GamificacionService {
     private final MisionService misionService;
     private final CursoRepository cursoRepository;
     private final RecompensaManualRepository recompensaManualRepository;
+    private final GeminiService geminiService;
 
     @Override
     @Transactional(readOnly = true)
@@ -441,6 +444,171 @@ public class GamificacionServiceImpl implements GamificacionService {
     public Integer obtenerPuntosRecompensasManuales(UUID estudianteId) {
         Integer puntos = recompensaManualRepository.sumPuntosByEstudianteId(estudianteId);
         return puntos != null ? puntos : 0;
+    }
+
+    // ========== MÉTODOS DE SUGERENCIAS CON IA ==========
+    // Historia de Usuario #20: IA analiza progreso y sugiere metas
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.eduquestia.backend.dto.response.SugerenciaIAResponse generarSugerenciasIA(UUID estudianteId) {
+        log.info("Generando sugerencias de IA para estudiante: {}", estudianteId);
+
+        // Obtener perfil gamificado completo
+        PerfilGamificadoResponse perfil = obtenerPerfilGamificado(estudianteId);
+
+        // Obtener información adicional de progreso
+        List<ProgresoMision> progresos = progresoRepository.findByEstudianteId(estudianteId);
+        long misionesCompletadas = progresos.stream().filter(ProgresoMision::getCompletada).count();
+        long misionesEnProgreso = progresos.stream()
+                .filter(p -> !p.getCompletada() && p.getPorcentajeCompletado() > 0)
+                .count();
+        long misionesPendientes = progresos.stream()
+                .filter(p -> !p.getCompletada() && p.getPorcentajeCompletado() == 0)
+                .count();
+
+        // Calcular estadísticas adicionales
+        double promedioCompletado = progresos.stream()
+                .mapToInt(ProgresoMision::getPorcentajeCompletado)
+                .average()
+                .orElse(0.0);
+
+        // Construir prompt para la IA
+        String systemPrompt = """
+            Eres un asistente educativo especializado en gamificación y motivación estudiantil.
+            Tu tarea es analizar el progreso de un estudiante y generar sugerencias personalizadas
+            de metas y recompensas que lo motiven a seguir aprendiendo.
+            
+            Responde ÚNICAMENTE con un JSON válido en el siguiente formato:
+            {
+                "metasSugeridas": [
+                    {
+                        "titulo": "Título de la meta",
+                        "descripcion": "Descripción detallada",
+                        "tipo": "mision|evaluacion|puntos|nivel",
+                        "objetivo": número,
+                        "razon": "Por qué esta meta es adecuada"
+                    }
+                ],
+                "recompensasSugeridas": [
+                    {
+                        "nombre": "Nombre de la recompensa",
+                        "descripcion": "Descripción",
+                        "tipo": "logro|nivel|mision",
+                        "razon": "Por qué esta recompensa es motivadora"
+                    }
+                ],
+                "analisisProgreso": "Análisis breve del progreso del estudiante",
+                "mensajeMotivacional": "Mensaje motivacional personalizado"
+            }
+            
+            Genera 2-3 metas sugeridas y 2-3 recompensas sugeridas basadas en el progreso actual.
+            """;
+
+        String userMessage = String.format("""
+            Analiza el progreso del siguiente estudiante y genera sugerencias personalizadas:
+            
+            - Puntos totales: %d
+            - Nivel actual: %d (%s)
+            - Puntos para siguiente nivel: %d
+            - Misiones completadas: %d
+            - Misiones en progreso: %d
+            - Misiones pendientes: %d
+            - Promedio de completado: %.1f%%
+            - Logros obtenidos: %d de %d logros disponibles
+            
+            Genera sugerencias que sean alcanzables pero desafiantes, y que motiven al estudiante
+            a mejorar su rendimiento.
+            """,
+            perfil.getPuntosTotales(),
+            perfil.getNivel(),
+            perfil.getNombreNivel(),
+            perfil.getPuntosParaSiguienteNivel(),
+            misionesCompletadas,
+            misionesEnProgreso,
+            misionesPendientes,
+            promedioCompletado,
+            perfil.getLogrosObtenidos(),
+            perfil.getLogros() != null ? perfil.getLogros().size() : 0
+        );
+
+        try {
+            // Generar respuesta de la IA
+            String respuestaIA = geminiService.generateResponse(systemPrompt, userMessage);
+            
+            // Parsear JSON (simplificado - en producción usar Jackson)
+            return parsearRespuestaIA(respuestaIA);
+        } catch (Exception e) {
+            log.error("Error al generar sugerencias de IA: {}", e.getMessage(), e);
+            // Retornar sugerencias por defecto en caso de error
+            return generarSugerenciasPorDefecto(perfil);
+        }
+    }
+
+    private com.eduquestia.backend.dto.response.SugerenciaIAResponse parsearRespuestaIA(String respuestaIA) {
+        // Intentar extraer JSON de la respuesta (puede venir con markdown)
+        String json = respuestaIA;
+        if (respuestaIA.contains("```json")) {
+            int start = respuestaIA.indexOf("```json") + 7;
+            int end = respuestaIA.indexOf("```", start);
+            json = respuestaIA.substring(start, end).trim();
+        } else if (respuestaIA.contains("```")) {
+            int start = respuestaIA.indexOf("```") + 3;
+            int end = respuestaIA.indexOf("```", start);
+            json = respuestaIA.substring(start, end).trim();
+        }
+
+        // Parsear JSON usando Jackson (simplificado)
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(json, com.eduquestia.backend.dto.response.SugerenciaIAResponse.class);
+        } catch (Exception e) {
+            log.warn("Error al parsear JSON de IA, usando sugerencias por defecto: {}", e.getMessage());
+            return generarSugerenciasPorDefecto(null);
+        }
+    }
+
+    private com.eduquestia.backend.dto.response.SugerenciaIAResponse generarSugerenciasPorDefecto(PerfilGamificadoResponse perfil) {
+        List<com.eduquestia.backend.dto.response.SugerenciaMeta> metas = new ArrayList<>();
+        List<com.eduquestia.backend.dto.response.SugerenciaRecompensa> recompensas = new ArrayList<>();
+
+        if (perfil != null) {
+            // Meta: Alcanzar siguiente nivel
+            if (perfil.getPuntosParaSiguienteNivel() > 0) {
+                metas.add(com.eduquestia.backend.dto.response.SugerenciaMeta.builder()
+                        .titulo("Alcanzar el siguiente nivel")
+                        .descripcion(String.format("Gana %d puntos más para alcanzar el nivel %d", 
+                                perfil.getPuntosParaSiguienteNivel(), perfil.getNivel() + 1))
+                        .tipo("nivel")
+                        .objetivo(perfil.getPuntosParaSiguienteNivel())
+                        .razon("Estás cerca del siguiente nivel, ¡sigue así!")
+                        .build());
+            }
+
+            // Meta: Completar más misiones
+            metas.add(com.eduquestia.backend.dto.response.SugerenciaMeta.builder()
+                    .titulo("Completar 3 misiones más")
+                    .descripcion("Completa 3 misiones adicionales para mejorar tu progreso")
+                    .tipo("mision")
+                    .objetivo(3)
+                    .razon("Completar misiones te ayudará a ganar más puntos y experiencia")
+                    .build());
+
+            // Recompensa sugerida: Logro
+            recompensas.add(com.eduquestia.backend.dto.response.SugerenciaRecompensa.builder()
+                    .nombre("Explorador")
+                    .descripcion("Completa 5 misiones diferentes")
+                    .tipo("logro")
+                    .razon("Este logro te dará puntos adicionales y reconocimiento")
+                    .build());
+        }
+
+        return com.eduquestia.backend.dto.response.SugerenciaIAResponse.builder()
+                .metasSugeridas(metas)
+                .recompensasSugeridas(recompensas)
+                .analisisProgreso("Tu progreso está en desarrollo. Sigue completando misiones para avanzar.")
+                .mensajeMotivacional("¡Sigue así! Cada misión completada te acerca más a tus objetivos.")
+                .build();
     }
 }
 

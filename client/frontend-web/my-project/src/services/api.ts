@@ -21,6 +21,7 @@ import type {
   ResultadoEvaluacionResponse,
   OtorgarRecompensaRequest,
   RecompensaManualResponse,
+  SugerenciaIAResponse,
 } from "../types";
 
 // Configuración base de axios
@@ -538,6 +539,18 @@ class ApiService {
     });
     // El backend devuelve texto plano directamente
     return typeof response.data === 'string' ? response.data : String(response.data);
+  }
+
+  // ==================== SUGERENCIAS DE IA ====================
+  // Historia de Usuario #20: IA analiza progreso y sugiere metas
+
+  async obtenerSugerenciasIA(estudianteId: string): Promise<SugerenciaIAResponse> {
+    const response = await this.api.get<{
+      success: boolean;
+      data: SugerenciaIAResponse;
+      message: string;
+    }>(`/gamificacion/estudiante/${estudianteId}/sugerencias-ia`);
+    return response.data.data;
   }
 }
 

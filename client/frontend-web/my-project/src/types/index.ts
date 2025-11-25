@@ -459,3 +459,28 @@ export interface RecompensaManualResponse {
   observaciones?: string;
   fechaOtorgamiento: string;
 }
+
+// ==================== SUGERENCIAS DE IA ====================
+// Historia de Usuario #20: IA analiza progreso y sugiere metas
+
+export interface SugerenciaMeta {
+  titulo: string;
+  descripcion: string;
+  tipo: "mision" | "evaluacion" | "puntos" | "nivel";
+  objetivo: number;
+  razon: string;
+}
+
+export interface SugerenciaRecompensa {
+  nombre: string;
+  descripcion: string;
+  tipo: "logro" | "nivel" | "mision";
+  razon: string;
+}
+
+export interface SugerenciaIAResponse {
+  metasSugeridas: SugerenciaMeta[];
+  recompensasSugeridas: SugerenciaRecompensa[];
+  analisisProgreso: string;
+  mensajeMotivacional: string;
+}

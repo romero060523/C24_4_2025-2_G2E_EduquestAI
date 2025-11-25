@@ -1,5 +1,61 @@
 @import "tailwindcss";
+
+/* Variables CSS para tema personalizado */
+:root {
+  --color-primario: #3B82F6;
+  --color-secundario: #6366F1;
+  --color-acento: #8B5CF6;
+  --color-fondo: #F9FAFB;
+}
+
+/* Clases CSS personalizadas que usan las variables del tema */
+.bg-tema-primario {
+  background-color: var(--color-primario) !important;
+}
+
+.bg-tema-secundario {
+  background-color: var(--color-secundario) !important;
+}
+
+.bg-tema-acento {
+  background-color: var(--color-acento) !important;
+}
+
+.bg-tema-fondo {
+  background-color: var(--color-fondo) !important;
+}
+
+.text-tema-primario {
+  color: var(--color-primario) !important;
+}
+
+.text-tema-secundario {
+  color: var(--color-secundario) !important;
+}
+
+.text-tema-acento {
+  color: var(--color-acento) !important;
+}
+
+.border-tema-primario {
+  border-color: var(--color-primario) !important;
+}
+
+.hover\:bg-tema-primario:hover {
+  background-color: var(--color-primario) !important;
+}
+
+.hover\:text-tema-primario:hover {
+  color: var(--color-primario) !important;
+}
+
+/* Gradientes personalizados */
+.bg-gradient-tema-primario {
+  background: linear-gradient(to right, var(--color-primario), var(--color-secundario)) !important;
+}
+
 /* Solo normalización mínima, sin estilos globales que interfieran con el login */
 body {
   margin: 0;
+  background-color: var(--color-fondo);
 }

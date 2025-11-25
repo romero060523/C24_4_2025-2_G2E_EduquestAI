@@ -73,13 +73,18 @@ export default function LoginForm() {
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-200"
+            className="w-4 h-4 text-tema-primario border-gray-300 rounded focus:ring-2"
+            style={{ 
+              '--tw-ring-color': 'var(--color-primario)',
+              color: 'var(--color-primario)'
+            } as React.CSSProperties}
           />
           <span className="ml-2 text-sm text-gray-600">Recordarme</span>
         </label>
         <a
           href="#"
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          className="text-sm text-tema-primario hover:opacity-80 font-medium"
+          style={{ color: 'var(--color-primario)' }}
         >
           ¿Olvidaste tu contraseña?
         </a>
@@ -95,7 +100,8 @@ export default function LoginForm() {
       {/* Submit Button */}
       <button
         type="submit"
-        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 bg-tema-primario hover:opacity-90 text-white font-semibold rounded-lg transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ backgroundColor: 'var(--color-primario)' }}
         disabled={loading}
       >
         {loading ? "Ingresando..." : "Iniciar sesión"}

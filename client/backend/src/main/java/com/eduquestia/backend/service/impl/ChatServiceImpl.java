@@ -4,25 +4,31 @@ import com.eduquestia.backend.dto.request.ChatRequestDTO;
 import com.eduquestia.backend.dto.response.ChatResponseDTO;
 import com.eduquestia.backend.dto.response.ConversacionDTO;
 import com.eduquestia.backend.dto.response.MensajeDTO;
+import com.eduquestia.backend.dto.response.SugerenciaIAResponse;
 import com.eduquestia.backend.entity.Conversacion;
 import com.eduquestia.backend.entity.Mensaje;
 import com.eduquestia.backend.repository.ConversacionRepository;
 import com.eduquestia.backend.repository.MensajeRepository;
 import com.eduquestia.backend.service.ChatService;
+import com.eduquestia.backend.service.GamificacionService;
 import com.eduquestia.backend.service.GeminiService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
     private final GeminiService geminiService;
+    private final GamificacionService gamificacionService;
     private final ConversacionRepository conversacionRepository;
     private final MensajeRepository mensajeRepository;
 
@@ -84,9 +90,35 @@ public class ChatServiceImpl implements ChatService {
         mensajeUsuario.setEsUsuario(true);
         mensajeRepository.save(mensajeUsuario);
 
-        // Generar respuesta de la IA según el rol
-        String systemPrompt = obtenerPromptPorRol(request.getRolUsuario());
-        String respuestaIA = geminiService.generateResponse(systemPrompt, request.getMensaje());
+        // Verificar si el mensaje pregunta sobre progreso o metas (solo para estudiantes)
+        String mensajeLower = request.getMensaje().toLowerCase(Locale.ROOT);
+        boolean preguntaProgreso = esPreguntaProgreso(mensajeLower);
+        boolean preguntaMetas = esPreguntaMetas(mensajeLower);
+        
+        String respuestaIA;
+        
+        // Si es estudiante y pregunta sobre progreso o metas, usar el servicio de sugerencias
+        if ("estudiante".equalsIgnoreCase(request.getRolUsuario()) && (preguntaProgreso || preguntaMetas)) {
+            try {
+                log.info("Detectada pregunta sobre progreso/metas. Generando sugerencias para estudiante: {}", request.getUsuarioId());
+                SugerenciaIAResponse sugerencias = gamificacionService.generarSugerenciasIA(request.getUsuarioId());
+                respuestaIA = formatearRespuestaConSugerencias(sugerencias, preguntaProgreso, preguntaMetas);
+            } catch (Exception e) {
+                log.error("Error al obtener sugerencias de IA: {}", e.getMessage(), e);
+                // Respuesta por defecto sin depender de Gemini ni del servicio de gamificación
+                respuestaIA = generarRespuestaPorDefecto(preguntaProgreso, preguntaMetas);
+            }
+        } else {
+            // Generar respuesta de la IA según el rol
+            try {
+                String systemPrompt = obtenerPromptPorRol(request.getRolUsuario());
+                respuestaIA = geminiService.generateResponse(systemPrompt, request.getMensaje());
+            } catch (Exception e) {
+                log.error("Error al generar respuesta de IA: {}", e.getMessage(), e);
+                // Respuesta por defecto si falla Gemini
+                respuestaIA = "Lo siento, estoy teniendo problemas técnicos en este momento. Por favor, intenta más tarde o contacta con soporte si el problema persiste.";
+            }
+        }
 
         // Guardar respuesta de la IA
         Mensaje mensajeIA = new Mensaje();
@@ -164,5 +196,133 @@ public class ChatServiceImpl implements ChatService {
                 : primerMensaje;
         
         return titulo;
+    }
+
+    /**
+     * Detecta si el mensaje pregunta sobre el progreso del estudiante
+     */
+    private boolean esPreguntaProgreso(String mensaje) {
+        String[] palabrasClave = {
+            "progreso", "cómo voy", "como voy", "cómo estoy", "como estoy",
+            "avance", "avances", "rendimiento", "desempeño", "estadísticas",
+            "estadisticas", "puntos", "nivel", "logros", "misiones completadas"
+        };
+        
+        for (String palabra : palabrasClave) {
+            if (mensaje.contains(palabra)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Detecta si el mensaje pregunta sobre metas o motivación
+     */
+    private boolean esPreguntaMetas(String mensaje) {
+        String[] palabrasClave = {
+            "meta", "metas", "objetivo", "objetivos", "motiv", "motivación",
+            "motivacion", "sugerencia", "sugerencias", "recomendación",
+            "recomendacion", "qué puedo hacer", "que puedo hacer",
+            "qué debería hacer", "que deberia hacer", "cómo mejorar",
+            "como mejorar", "recompensa", "recompensas"
+        };
+        
+        for (String palabra : palabrasClave) {
+            if (mensaje.contains(palabra)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Genera una respuesta por defecto cuando falla el servicio de IA
+     */
+    private String generarRespuestaPorDefecto(boolean preguntaProgreso, boolean preguntaMetas) {
+        StringBuilder respuesta = new StringBuilder();
+        
+        if (preguntaProgreso) {
+            respuesta.append("📊 **Análisis de tu Progreso**\n\n");
+            respuesta.append("Puedo ayudarte a revisar tu progreso. Te recomiendo que:\n");
+            respuesta.append("- Revises tu dashboard para ver tus puntos y nivel actual\n");
+            respuesta.append("- Consultes las misiones completadas y pendientes\n");
+            respuesta.append("- Veas tus logros obtenidos\n\n");
+        }
+        
+        if (preguntaMetas) {
+            respuesta.append("🎯 **Sugerencias de Metas**\n\n");
+            respuesta.append("Para mantenerte motivado, te sugiero:\n");
+            respuesta.append("1. Completar al menos una misión por día\n");
+            respuesta.append("2. Alcanzar el siguiente nivel de puntos\n");
+            respuesta.append("3. Participar activamente en tus cursos\n\n");
+            respuesta.append("🏆 **Recompensas Disponibles**\n\n");
+            respuesta.append("Puedes obtener recompensas completando misiones y alcanzando objetivos. ");
+            respuesta.append("¡Mantén el esfuerzo y verás los resultados!\n\n");
+        }
+        
+        respuesta.append("¿Te gustaría que profundice en algún aspecto específico?");
+        
+        return respuesta.toString();
+    }
+
+    /**
+     * Formatea la respuesta del chat incluyendo las sugerencias de IA
+     */
+    private String formatearRespuestaConSugerencias(SugerenciaIAResponse sugerencias, 
+                                                     boolean preguntaProgreso, 
+                                                     boolean preguntaMetas) {
+        StringBuilder respuesta = new StringBuilder();
+        
+        // Mensaje motivacional
+        if (sugerencias.getMensajeMotivacional() != null && !sugerencias.getMensajeMotivacional().isEmpty()) {
+            respuesta.append("💪 ").append(sugerencias.getMensajeMotivacional()).append("\n\n");
+        }
+        
+        // Análisis de progreso
+        if (preguntaProgreso && sugerencias.getAnalisisProgreso() != null && !sugerencias.getAnalisisProgreso().isEmpty()) {
+            respuesta.append("## 📊 Análisis de tu Progreso\n\n");
+            respuesta.append(sugerencias.getAnalisisProgreso()).append("\n\n");
+        }
+        
+        // Metas sugeridas
+        if (preguntaMetas && sugerencias.getMetasSugeridas() != null && !sugerencias.getMetasSugeridas().isEmpty()) {
+            respuesta.append("## 🎯 Metas Sugeridas para Ti\n\n");
+            for (int i = 0; i < sugerencias.getMetasSugeridas().size(); i++) {
+                var meta = sugerencias.getMetasSugeridas().get(i);
+                respuesta.append("**").append(i + 1).append(". ").append(meta.getTitulo()).append("**\n");
+                respuesta.append(meta.getDescripcion()).append("\n");
+                if (meta.getObjetivo() != null) {
+                    respuesta.append("- Objetivo: ").append(meta.getObjetivo());
+                    if (meta.getTipo() != null) {
+                        respuesta.append(" ").append(meta.getTipo().equals("puntos") ? "puntos" : "misiones");
+                    }
+                    respuesta.append("\n");
+                }
+                if (meta.getRazon() != null && !meta.getRazon().isEmpty()) {
+                    respuesta.append("- 💡 ").append(meta.getRazon()).append("\n");
+                }
+                respuesta.append("\n");
+            }
+        }
+        
+        // Recompensas sugeridas
+        if (preguntaMetas && sugerencias.getRecompensasSugeridas() != null && !sugerencias.getRecompensasSugeridas().isEmpty()) {
+            respuesta.append("## 🏆 Recompensas que Puedes Obtener\n\n");
+            for (int i = 0; i < sugerencias.getRecompensasSugeridas().size(); i++) {
+                var recompensa = sugerencias.getRecompensasSugeridas().get(i);
+                respuesta.append("**").append(i + 1).append(". ").append(recompensa.getNombre()).append("**\n");
+                respuesta.append(recompensa.getDescripcion()).append("\n");
+                if (recompensa.getRazon() != null && !recompensa.getRazon().isEmpty()) {
+                    respuesta.append("- ✨ ").append(recompensa.getRazon()).append("\n");
+                }
+                respuesta.append("\n");
+            }
+        }
+        
+        // Mensaje final
+        respuesta.append("¿Te gustaría que profundice en alguna de estas sugerencias o tienes alguna otra pregunta?");
+        
+        return respuesta.toString();
     }
 }

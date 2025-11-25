@@ -38,7 +38,17 @@ const ChatIAPage = () => {
 
   const quickSuggestions: QuickSuggestion[] = [
     {
-      icon: <Book className="w-5 h-5 text-blue-600" />,
+      icon: <TrendingUp className="w-5 h-5 text-blue-600" />,
+      title: "¿Cómo va mi progreso?",
+      description: "Análisis de tu rendimiento y estadísticas",
+    },
+    {
+      icon: <Lightbulb className="w-5 h-5 text-yellow-600" />,
+      title: "Sugiéreme metas para motivarme",
+      description: "Obtén metas personalizadas basadas en tu progreso",
+    },
+    {
+      icon: <Book className="w-5 h-5 text-green-600" />,
       title: "Recursos de matemáticas",
       description: "Obtén ayuda con ecuaciones y problemas",
     },
@@ -48,14 +58,9 @@ const ChatIAPage = () => {
       description: "Encuentra videos educativos",
     },
     {
-      icon: <FileText className="w-5 h-5 text-green-600" />,
+      icon: <FileText className="w-5 h-5 text-indigo-600" />,
       title: "Resúmenes de literatura",
       description: "Comprende mejor las lecturas",
-    },
-    {
-      icon: <Lightbulb className="w-5 h-5 text-yellow-600" />,
-      title: "Ayuda con tareas",
-      description: "Guía para resolver ejercicios",
     },
   ];
 

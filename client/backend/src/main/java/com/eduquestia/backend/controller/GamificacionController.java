@@ -5,6 +5,7 @@ import com.eduquestia.backend.dto.response.ApiResponse;
 import com.eduquestia.backend.dto.response.PerfilGamificadoResponse;
 import com.eduquestia.backend.dto.response.RankingResponse;
 import com.eduquestia.backend.dto.response.RecompensaManualResponse;
+import com.eduquestia.backend.dto.response.SugerenciaIAResponse;
 import com.eduquestia.backend.service.GamificacionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -131,6 +132,26 @@ public class GamificacionController {
         
         return ResponseEntity.ok(
                 ApiResponse.success(recompensas, "Recompensas obtenidas exitosamente")
+        );
+    }
+
+    // ========== ENDPOINTS DE SUGERENCIAS CON IA ==========
+    // Historia de Usuario #20: IA analiza progreso y sugiere metas
+
+    /**
+     * Generar sugerencias de metas y recompensas usando IA
+     * GET /api/v1/gamificacion/estudiante/{estudianteId}/sugerencias-ia
+     */
+    @GetMapping("/estudiante/{estudianteId}/sugerencias-ia")
+    public ResponseEntity<ApiResponse<SugerenciaIAResponse>> generarSugerenciasIA(
+            @PathVariable UUID estudianteId) {
+        
+        log.info("GET /gamificacion/estudiante/{}/sugerencias-ia - Generar sugerencias con IA", estudianteId);
+        
+        SugerenciaIAResponse sugerencias = gamificacionService.generarSugerenciasIA(estudianteId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.success(sugerencias, "Sugerencias generadas exitosamente")
         );
     }
 }

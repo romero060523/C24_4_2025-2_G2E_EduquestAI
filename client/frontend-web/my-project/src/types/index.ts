@@ -429,6 +429,53 @@ export interface RespuestaRequest {
   tiempoRespuestaSegundos?: number;
 }
 
+// ==================== TAREA 19: Retroalimentación Automática ====================
+export interface GenerarRetroalimentacionRequest {
+  estudianteId: string;
+  evaluacionId: string;
+}
+
+export interface RetroalimentacionResponse {
+  estudianteId: string;
+  estudianteNombre: string;
+  evaluacionId: string;
+  evaluacionTitulo: string;
+  retroalimentacion: string;
+  fechaGeneracion: string;
+}
+
+// ==================== TAREA 21: Actividades Adaptadas ====================
+export interface GenerarActividadesAdaptadasRequest {
+  cursoId: string;
+  tema?: string;
+  cantidadPreguntas?: number;
+  tipoActividad?: string;
+}
+
+export interface PreguntaPropuesta {
+  enunciado: string;
+  tipoPregunta: string;
+  opciones: string[];
+  indiceCorrecta: number;
+  explicacion: string;
+}
+
+export interface ActividadPropuesta {
+  titulo: string;
+  descripcion: string;
+  tipo: string;
+  dificultad: string;
+  preguntas: PreguntaPropuesta[];
+}
+
+export interface ActividadesAdaptadasResponse {
+  cursoId: string;
+  cursoNombre: string;
+  nivelPromedioEstudiantes: string;
+  actividades: ActividadPropuesta[];
+  fechaGeneracion: string;
+}
+
 export interface ResponderEvaluacionRequest {
   evaluacionId: string;
   respuestas: RespuestaRequest[];

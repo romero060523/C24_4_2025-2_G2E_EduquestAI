@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2, Clock, Save } from "lucide-react";
+import { X, Plus, Trash2, Clock, Save, Sparkles, Loader2 } from "lucide-react";
 import { apiService } from "../../services/api";
-import type { CrearEvaluacionRequest, CrearPreguntaRequest, CrearOpcionRequest, TipoPregunta, MisionListResponse, Curso } from "../../types";
+import type { CrearEvaluacionRequest, CrearPreguntaRequest, CrearOpcionRequest, TipoPregunta, MisionListResponse, Curso, ActividadesAdaptadasResponse } from "../../types";
 
 interface Props {
   isOpen: boolean;
@@ -14,6 +14,7 @@ const CrearEvaluacionModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, mis
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursos, setCursos] = useState<Curso[]>([]);
+  const [generandoActividades, setGenerandoActividades] = useState(false);
   const [formData, setFormData] = useState<CrearEvaluacionRequest>({
     misionId: misionOpcional?.id,
     cursoId: "",
@@ -118,6 +119,51 @@ const CrearEvaluacionModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, mis
       [campo]: valor,
     };
     setFormData({ ...formData, preguntas: nuevasPreguntas });
+  };
+
+  const generarActividadesAdaptadas = async () => {
+    if (!formData.cursoId) {
+      setError("Debes seleccionar un curso primero");
+      return;
+    }
+
+    setGenerandoActividades(true);
+    setError(null);
+
+    try {
+      const response = await apiService.generarActividadesAdaptadas({
+        cursoId: formData.cursoId,
+        cantidadPreguntas: 5,
+        tipoActividad: "evaluacion",
+      });
+
+      // Convertir las actividades generadas a preguntas
+      if (response.actividades && response.actividades.length > 0) {
+        const actividad = response.actividades[0]; // Tomar la primera actividad
+        const nuevasPreguntas: CrearPreguntaRequest[] = actividad.preguntas.map((p, index) => ({
+          enunciado: p.enunciado,
+          tipoPregunta: p.tipoPregunta as TipoPregunta,
+          puntos: formData.puntosPorPregunta,
+          orden: formData.preguntas.length + index,
+          explicacion: p.explicacion,
+          opciones: p.opciones.map((opcion, opcionIndex) => ({
+            texto: opcion,
+            esCorrecta: opcionIndex === p.indiceCorrecta,
+            orden: opcionIndex,
+          })),
+        }));
+
+        setFormData({
+          ...formData,
+          preguntas: [...formData.preguntas, ...nuevasPreguntas],
+        });
+      }
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Error al generar actividades adaptadas";
+      setError(errorMessage);
+    } finally {
+      setGenerandoActividades(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -305,14 +351,36 @@ const CrearEvaluacionModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, mis
               <h3 className="text-lg font-semibold text-gray-800">
                 📝 Preguntas ({formData.preguntas.length})
               </h3>
-              <button
-                type="button"
-                onClick={agregarPregunta}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Pregunta
-              </button>
+              <div className="flex gap-2">
+                {formData.cursoId && (
+                  <button
+                    type="button"
+                    onClick={generarActividadesAdaptadas}
+                    disabled={generandoActividades}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {generandoActividades ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Generar con IA
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={agregarPregunta}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar Pregunta
+                </button>
+              </div>
             </div>
 
             <div className="space-y-6">

@@ -20,6 +20,7 @@ import PerfilGamificado from "./pages/estudiante/PerfilGamificado";
 import ChatIAPage from "./pages/estudiante/ChatIAPage";
 import AlertasPage from "./pages/profesor/AlertasPage";
 import ConfigurarAlertasPage from "./pages/profesor/ConfigurarAlertasPage";
+import EvaluacionesPage from "./pages/profesor/EvaluacionesPage";
 import { useTema } from "./hooks/useTema";
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
         <Route path="ranking" element={<RankingGrupoPage />} />
         <Route path="reportes" element={<ReportesPage />} />
         <Route path="recursos" element={<RecursosPage />} />
+        <Route path="evaluaciones" element={<EvaluacionesPage />} />
 
         {/* Redirección por defecto */}
         <Route index element={<Navigate to="inicio" replace />} />

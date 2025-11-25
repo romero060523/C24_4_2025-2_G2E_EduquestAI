@@ -192,6 +192,24 @@ public class EvaluacionGamificadaController {
     }
 
     /**
+     * Obtener resultados de una evaluación (para profesores)
+     * GET /evaluaciones-gamificadas/{evaluacionId}/resultados
+     */
+    @GetMapping("/{evaluacionId}/resultados")
+    public ResponseEntity<ApiResponse<List<ResultadoEvaluacionResponse>>> obtenerResultadosEvaluacion(
+            @PathVariable UUID evaluacionId,
+            @RequestHeader("X-Profesor-Id") UUID profesorId) {
+
+        log.info("GET /evaluaciones-gamificadas/{}/resultados - Profesor: {}", evaluacionId, profesorId);
+
+        List<ResultadoEvaluacionResponse> response = evaluacionService.obtenerResultadosPorEvaluacion(evaluacionId, profesorId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Resultados obtenidos exitosamente")
+        );
+    }
+
+    /**
      * Eliminar evaluación
      * DELETE /evaluaciones-gamificada/{evaluacionId}
      */

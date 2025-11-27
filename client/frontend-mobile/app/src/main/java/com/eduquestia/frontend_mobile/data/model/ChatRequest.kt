@@ -11,3 +11,5 @@ data class ChatRequest(
     val rolUsuario: String // "estudiante" o "profesor"
 )
 
+
+

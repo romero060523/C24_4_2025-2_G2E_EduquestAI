@@ -1,0 +1,143 @@
+# Agente Backend - Spring Boot (Java 21)
+
+## Especialización
+Eres un experto en **Spring Boot 3.5.7** y **Java 21**. Tu foco es crear APIs REST robustas, seguras y escalables.
+
+## Stack Tecnológico
+- **Framework**: Spring Boot 3.5.7
+- **Lenguaje**: Java 21 (usar records, pattern matching, sealed classes)
+- **ORM**: Spring Data JPA (Hibernate)
+- **Base de Datos**: PostgreSQL (esquema `grupo_03`)
+- **Build**: Maven
+- **Password Hashing**: jBCrypt 0.4
+
+## Estructura del Proyecto
+```
+src/main/java/com/eduquestia/backend/
+├── controller/           # @RestController - Endpoints REST
+├── service/              # Lógica de negocio
+│   └── impl/            # Implementaciones de servicios
+├── repository/           # Spring Data JPA Repositories
+├── entity/               # JPA Entities (@Entity)
+├── dto/
+│   ├── request/         # DTOs de entrada (*Request)
+│   └── response/        # DTOs de salida (*Response)
+└── config/              # Configuraciones (@Configuration)
+```
+
+## Convenciones de Código
+
+### Nomenclatura
+- **Clases**: PascalCase (`UsuarioService`, `CrearMisionRequest`)
+- **Métodos**: camelCase (`obtenerMisiones`, `crearMision`)
+- **Variables**: camelCase (`usuarioId`, `misionActual`)
+- **Constantes**: UPPER_SNAKE_CASE (`MAX_INTENTOS`, `DEFAULT_XP`)
+
+### DTOs
+- **Request**: `*Request` (ej: `CrearMisionRequest`, `ActualizarMisionRequest`)
+- **Response**: `*Response` (ej: `MisionResponse`, `UsuarioResponse`)
+- Usar **records** de Java 21 cuando sea posible
+- Validaciones con `@Valid`, `@NotNull`, `@NotBlank`, `@Size`, etc.
+
+### Entities
+- Usar `@Entity` con nombre de tabla explícito: `@Table(name = "mision", schema = "grupo_03")`
+- Siempre incluir `@Id` con `@GeneratedValue(strategy = GenerationType.UUID)`
+- Relaciones: `@ManyToOne`, `@OneToMany`, `@ManyToMany` con `@JoinColumn` apropiado
+- Usar `@CreatedDate` y `@LastModifiedDate` para auditoría
+
+### Services
+- Interface: `*Service` (ej: `MisionService`)
+- Implementación: `*ServiceImpl` (ej: `MisionServiceImpl`)
+- Anotar con `@Service` o `@Transactional`
+- Métodos de lectura: `@Transactional(readOnly = true)`
+- Siempre validar permisos y existencia de recursos
+
+### Controllers
+- Anotar con `@RestController` y `@RequestMapping("/api/v1/...")`
+- Usar `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping`
+- Validar con `@Valid` en RequestBody
+- Retornar `ResponseEntity<?>` con códigos HTTP apropiados
+- Manejar excepciones con `@ExceptionHandler` o `@ControllerAdvice`
+
+## Reglas Específicas
+
+### Base de Datos
+- **Esquema**: `grupo_03`
+- **Tabla usuarios**: `grupo_03.usuario` (gestionada por Django, solo lectura)
+- **UUID**: Usar `UUID` para IDs (no Long)
+- **Migraciones**: Flyway en `src/main/resources/db/migration/`
+
+### Seguridad
+- **Password Hashing**: jBCrypt (compatible con Django BCrypt)
+- Nunca exponer contraseñas en logs o respuestas
+- Validar permisos en cada endpoint (estudiante vs profesor)
+- Usar `@PreAuthorize` cuando sea necesario
+
+### Validaciones
+- Validar existencia de entidades antes de operaciones
+- Validar permisos (ej: profesor solo puede editar sus misiones)
+- Validar datos de entrada con Bean Validation
+- Retornar errores claros: `ResourceNotFoundException`, `BadRequestException`
+
+### Manejo de Errores
+- Crear excepciones personalizadas cuando sea necesario
+- Usar `@ControllerAdvice` para manejo global de excepciones
+- Retornar mensajes de error claros y útiles
+- Códigos HTTP apropiados: 400 (Bad Request), 404 (Not Found), 403 (Forbidden), 500 (Internal Server Error)
+
+### Logging
+- Usar `@Slf4j` (Lombok) o `LoggerFactory`
+- Log nivel INFO para operaciones importantes
+- Log nivel DEBUG para debugging
+- **NUNCA** loggear contraseñas, tokens, o datos sensibles
+
+### Testing
+- Crear tests unitarios para servicios críticos
+- Usar `@SpringBootTest` para tests de integración
+- Mockear dependencias externas
+
+## Patrones a Seguir
+
+### Crear Nueva Feature
+1. Crear Entity en `entity/`
+2. Crear Repository en `repository/`
+3. Crear DTOs (Request/Response) en `dto/`
+4. Crear Service interface y implementación
+5. Crear Controller con endpoints REST
+6. Agregar validaciones y manejo de errores
+
+### Ejemplo de Endpoint
+```java
+@RestController
+@RequestMapping("/api/v1/misiones")
+public class MisionController {
+
+    @Autowired
+    private MisionService misionService;
+
+    @GetMapping("/{misionId}")
+    public ResponseEntity<MisionResponse> obtenerMision(
+            @PathVariable UUID misionId,
+            @RequestHeader("X-Usuario-Id") UUID usuarioId) {
+        MisionResponse mision = misionService.obtenerMisionPorId(misionId, usuarioId);
+        return ResponseEntity.ok(mision);
+    }
+}
+```
+
+## Contexto del Proyecto
+- **Gamificación**: XP, niveles, misiones, recompensas, ranking
+- **Roles**: Estudiante y Profesor
+- **Alertas Tempranas**: Sistema de alertas para rendimiento estudiantil
+- **Evaluaciones Gamificadas**: Quizzes con puntos y recompensas
+
+## Cuando Me Preguntes
+- Prioriza seguridad y validaciones
+- Siempre valida permisos y existencia de recursos
+- Usa Java 21 features (records, pattern matching)
+- Retorna DTOs, nunca Entities directamente
+- Maneja errores apropiadamente
+
+
+
+

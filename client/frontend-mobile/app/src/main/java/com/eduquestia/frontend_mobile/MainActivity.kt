@@ -12,18 +12,19 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.eduquestia.frontend_mobile.data.local.TokenManager
+import com.eduquestia.frontend_mobile.data.remote.RetrofitClient
 import com.eduquestia.frontend_mobile.data.repository.AuthRepository
 import com.eduquestia.frontend_mobile.ui.navigation.NavGraph
 import com.eduquestia.frontend_mobile.ui.navigation.Screen
 import com.eduquestia.frontend_mobile.ui.theme.FrontendmobileTheme
 import com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
+
         setContent {
             FrontendmobileTheme {
                 Surface(
@@ -31,16 +32,26 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val tokenManager = remember { TokenManager(this@MainActivity) }
+
+                    // Configurar el token provider para RetrofitClient
+                    LaunchedEffect(Unit) {
+                        RetrofitClient.setTokenProvider {
+                            runBlocking {
+                                tokenManager.getToken()
+                            }
+                        }
+                    }
+
                     val authRepository = remember { AuthRepository(tokenManager = tokenManager) }
-                    val authViewModel: AuthViewModel = viewModel { 
+                    val authViewModel: AuthViewModel = viewModel {
                         AuthViewModel(authRepository = authRepository)
                     }
-                    
+
                     val navController = rememberNavController()
-                    
+
                     // Determinar destino inicial basado en autenticación
                     var startDestination by remember { mutableStateOf<String?>(null) }
-                    
+
                     LaunchedEffect(Unit) {
                         val isLoggedIn = tokenManager.isLoggedIn()
                         startDestination = if (isLoggedIn) {
@@ -49,7 +60,7 @@ class MainActivity : ComponentActivity() {
                             Screen.Login.route
                         }
                     }
-                    
+
                     // Mostrar NavGraph solo cuando tengamos el destino inicial
                     startDestination?.let { destination ->
                         NavGraph(

@@ -19,6 +19,7 @@ class TokenManager(private val context: Context) {
         private val USER_ID_KEY = stringPreferencesKey("user_id")
         private val USER_EMAIL_KEY = stringPreferencesKey("user_email")
         private val USER_ROL_KEY = stringPreferencesKey("user_rol")
+        private val USER_NOMBRE_KEY = stringPreferencesKey("user_nombre")
     }
 
     val token: Flow<String?> = context.dataStore.data.map { preferences ->
@@ -37,17 +38,22 @@ class TokenManager(private val context: Context) {
         preferences[USER_ROL_KEY]
     }
 
+    val userNombre: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[USER_NOMBRE_KEY]
+    }
+
     suspend fun saveToken(token: String) {
         context.dataStore.edit { preferences ->
             preferences[TOKEN_KEY] = token
         }
     }
 
-    suspend fun saveUser(userId: String, email: String, rol: String) {
+    suspend fun saveUser(userId: String, email: String, rol: String, nombreCompleto: String? = null) {
         context.dataStore.edit { preferences ->
             preferences[USER_ID_KEY] = userId
             preferences[USER_EMAIL_KEY] = email
             preferences[USER_ROL_KEY] = rol
+            nombreCompleto?.let { preferences[USER_NOMBRE_KEY] = it }
         }
     }
 
@@ -60,6 +66,36 @@ class TokenManager(private val context: Context) {
     suspend fun isLoggedIn(): Boolean {
         return context.dataStore.data.map { preferences ->
             preferences[TOKEN_KEY] != null
+        }.first()
+    }
+
+    suspend fun getToken(): String? {
+        return context.dataStore.data.map { preferences ->
+            preferences[TOKEN_KEY]
+        }.first()
+    }
+
+    suspend fun getUserId(): String? {
+        return context.dataStore.data.map { preferences ->
+            preferences[USER_ID_KEY]
+        }.first()
+    }
+
+    suspend fun getUserNombre(): String? {
+        return context.dataStore.data.map { preferences ->
+            preferences[USER_NOMBRE_KEY]
+        }.first()
+    }
+
+    suspend fun getUserEmail(): String? {
+        return context.dataStore.data.map { preferences ->
+            preferences[USER_EMAIL_KEY]
+        }.first()
+    }
+
+    suspend fun getUserRol(): String? {
+        return context.dataStore.data.map { preferences ->
+            preferences[USER_ROL_KEY]
         }.first()
     }
 }

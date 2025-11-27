@@ -26,7 +26,8 @@ class AuthRepository(
                 tokenManager.saveUser(
                     userId = loginResponse.id,
                     email = loginResponse.email,
-                    rol = loginResponse.rol
+                    rol = loginResponse.rol,
+                    nombreCompleto = loginResponse.nombreCompleto
                 )
 
                 Result.success(usuario)
@@ -46,4 +47,6 @@ class AuthRepository(
         return tokenManager.isLoggedIn()
     }
 }
+
+
 

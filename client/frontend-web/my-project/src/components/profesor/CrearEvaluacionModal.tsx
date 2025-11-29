@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus, Trash2, Clock, Save, Sparkles, Loader2 } from "lucide-react";
 import { apiService } from "../../services/api";
-import type { CrearEvaluacionRequest, CrearPreguntaRequest, CrearOpcionRequest, TipoPregunta, MisionListResponse, Curso, ActividadesAdaptadasResponse } from "../../types";
+import type { CrearEvaluacionRequest, CrearPreguntaRequest, CrearOpcionRequest, TipoPregunta, MisionListResponse, Curso } from "../../types";
 
 interface Props {
   isOpen: boolean;

@@ -17,5 +17,8 @@ public class GenerarActividadesAdaptadasRequest {
     private String tema; // Tema o contenido específico (opcional)
     private Integer cantidadPreguntas; // Cantidad de preguntas a generar (opcional, default: 5)
     private String tipoActividad; // "evaluacion", "mision", "preguntas" (opcional)
+    
+    // Opcional: si se envía, las actividades se adaptan al nivel de un estudiante específico
+    private UUID estudianteId;
 }
 

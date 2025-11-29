@@ -146,7 +146,7 @@ public class EvaluacionGamificadaController {
      */
     @GetMapping("/curso/{cursoId}")
     public ResponseEntity<ApiResponse<List<EvaluacionGamificadaResponse>>> listarEvaluacionesPorCurso(
-            @PathVariable UUID cursoId) {
+            @PathVariable("cursoId") UUID cursoId) {
 
         log.info("GET /evaluaciones-gamificadas/curso/{} - Listar evaluaciones", cursoId);
 

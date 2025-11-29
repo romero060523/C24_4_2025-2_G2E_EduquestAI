@@ -3,8 +3,8 @@ package com.eduquestia.backend.service.impl;
 import com.eduquestia.backend.dto.request.GenerarRetroalimentacionRequest;
 import com.eduquestia.backend.dto.response.RetroalimentacionResponse;
 import com.eduquestia.backend.entity.*;
-import com.eduquestia.backend.exception.ResourceNotFoundException;
-import com.eduquestia.backend.exception.UnauthorizedException;
+import com.eduquestia.backend.exceptions.ResourceNotFoundException;
+import com.eduquestia.backend.exceptions.UnauthorizedException;
 import com.eduquestia.backend.repository.*;
 import com.eduquestia.backend.service.GeminiService;
 import com.eduquestia.backend.service.RetroalimentacionAIService;
@@ -80,7 +80,7 @@ public class RetroalimentacionAIServiceImpl implements RetroalimentacionAIServic
         // Construir el contexto para la IA
         String contexto = construirContextoRetroalimentacion(estudiante, evaluacion, mejorResultado, respuestas);
 
-        // Generar retroalimentación usando Gemini AI
+        // Generar retroalimentación usando Gemini AI (con fallback si falla la API)
         String systemPrompt = """
                 Eres un asistente educativo experto en retroalimentación personalizada para estudiantes.
                 
@@ -98,7 +98,14 @@ public class RetroalimentacionAIServiceImpl implements RetroalimentacionAIServic
                 Responde SOLO con la retroalimentación, sin encabezados ni formato adicional.
                 """;
 
-        String retroalimentacion = geminiService.generateResponse(systemPrompt, contexto);
+        String retroalimentacion;
+        try {
+            retroalimentacion = geminiService.generateResponse(systemPrompt, contexto);
+        } catch (Exception ex) {
+            // Fallback cuando la API de Gemini falla (por ejemplo, API key inválida)
+            log.error("Error al generar retroalimentación con Gemini. Usando fallback local.", ex);
+            retroalimentacion = generarRetroalimentacionFallback(estudiante, evaluacion, mejorResultado, respuestas);
+        }
 
         log.info("Retroalimentación generada exitosamente para estudiante {}", request.getEstudianteId());
 
@@ -176,6 +183,67 @@ public class RetroalimentacionAIServiceImpl implements RetroalimentacionAIServic
         contexto.append("Por favor, genera una retroalimentación personalizada y constructiva basada en esta información.");
 
         return contexto.toString();
+    }
+
+    /**
+     * Fallback sencillo para generar retroalimentación cuando la API de Gemini no está disponible.
+     * Usa reglas básicas a partir del porcentaje y de las preguntas correctas/incorrectas.
+     */
+    private String generarRetroalimentacionFallback(
+            Usuario estudiante,
+            EvaluacionGamificada evaluacion,
+            ResultadoEvaluacion resultado,
+            List<RespuestaEstudiante> respuestas) {
+
+        StringBuilder fb = new StringBuilder();
+
+        double porcentaje = resultado.getPorcentaje() != null ? resultado.getPorcentaje() : 0.0;
+        int correctas = resultado.getPreguntasCorrectas() != null ? resultado.getPreguntasCorrectas() : 0;
+        int totales = resultado.getPreguntasTotales() != null ? resultado.getPreguntasTotales() : respuestas.size();
+
+        fb.append("Hola ").append(estudiante.getNombreCompleto()).append(".\n\n");
+        fb.append("Esta es una retroalimentación automática sobre tu desempeño en la evaluación \"")
+                .append(evaluacion.getTitulo()).append("\".\n\n");
+
+        // Mensaje según el porcentaje
+        if (porcentaje >= 90) {
+            fb.append("¡Excelente trabajo! Obtuviste un ").append(String.format("%.1f", porcentaje))
+                    .append("%, lo cual refleja un dominio muy sólido de los contenidos evaluados.\n");
+        } else if (porcentaje >= 75) {
+            fb.append("Muy buen desempeño. Obtuviste un ").append(String.format("%.1f", porcentaje))
+                    .append("%, estás por encima de lo esperado, aunque aún hay pequeños detalles por reforzar.\n");
+        } else if (porcentaje >= 60) {
+            fb.append("Tu resultado fue de ").append(String.format("%.1f", porcentaje))
+                    .append("%. Vas por buen camino, pero es importante reforzar algunos temas clave.\n");
+        } else {
+            fb.append("Tu resultado fue de ").append(String.format("%.1f", porcentaje))
+                    .append("%. Esto indica que aún hay conceptos importantes por consolidar, pero con práctica puedes mejorar significativamente.\n");
+        }
+
+        fb.append("Respondiste correctamente ").append(correctas).append(" de ")
+                .append(totales).append(" preguntas.\n\n");
+
+        // Áreas de mejora basadas en respuestas incorrectas
+        List<RespuestaEstudiante> incorrectas = respuestas.stream()
+                .filter(r -> !Boolean.TRUE.equals(r.getEsCorrecta()))
+                .collect(Collectors.toList());
+
+        if (!incorrectas.isEmpty()) {
+            fb.append("ÁREAS DE MEJORA:\n");
+            for (RespuestaEstudiante r : incorrectas) {
+                if (r.getPregunta() != null && r.getPregunta().getEnunciado() != null) {
+                    fb.append("- Revisa el tipo de ejercicio relacionado con: \"")
+                            .append(r.getPregunta().getEnunciado()).append("\".\n");
+                }
+            }
+            fb.append("\nTe recomiendo volver a practicar estos temas, revisar tus apuntes y resolver ejercicios adicionales similares.\n\n");
+        }
+
+        // Mensaje motivacional final
+        fb.append("Sigue practicando de forma constante. Cada intento te acerca más al dominio completo del tema.\n");
+        fb.append("Confío en que con dedicación podrás mejorar aún más tus resultados en las próximas evaluaciones.");
+
+        return fb.toString();
     }
 }
 

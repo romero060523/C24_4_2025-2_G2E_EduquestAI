@@ -562,6 +562,9 @@ class ApiService {
       data: import("../types").ActividadesAdaptadasResponse;
       message: string;
     }>("/actividades-adaptadas-ai/generar", request);
+    return response.data.data;
+  }
+
   // ==================== SUGERENCIAS DE IA ====================
   // Historia de Usuario #20: IA analiza progreso y sugiere metas
 

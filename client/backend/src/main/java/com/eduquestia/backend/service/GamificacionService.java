@@ -65,5 +65,11 @@ public interface GamificacionService {
      * Obtiene el total de puntos de recompensas manuales de un estudiante
      */
     Integer obtenerPuntosRecompensasManuales(UUID estudianteId);
+    
+    /**
+     * Analiza el progreso del estudiante y genera sugerencias de metas y recompensas usando IA
+     * Historia de Usuario #20: IA analiza progreso y sugiere metas
+     */
+    com.eduquestia.backend.dto.response.SugerenciaIAResponse generarSugerenciasIA(UUID estudianteId);
 }
 

@@ -21,6 +21,7 @@ import type {
   ResultadoEvaluacionResponse,
   OtorgarRecompensaRequest,
   RecompensaManualResponse,
+  SugerenciaIAResponse,
 } from "../types";
 
 // Configuración base de axios
@@ -561,6 +562,15 @@ class ApiService {
       data: import("../types").ActividadesAdaptadasResponse;
       message: string;
     }>("/actividades-adaptadas-ai/generar", request);
+  // ==================== SUGERENCIAS DE IA ====================
+  // Historia de Usuario #20: IA analiza progreso y sugiere metas
+
+  async obtenerSugerenciasIA(estudianteId: string): Promise<SugerenciaIAResponse> {
+    const response = await this.api.get<{
+      success: boolean;
+      data: SugerenciaIAResponse;
+      message: string;
+    }>(`/gamificacion/estudiante/${estudianteId}/sugerencias-ia`);
     return response.data.data;
   }
 }

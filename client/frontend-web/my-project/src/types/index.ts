@@ -450,6 +450,7 @@ export interface GenerarActividadesAdaptadasRequest {
   tema?: string;
   cantidadPreguntas?: number;
   tipoActividad?: string;
+  estudianteId?: string;
 }
 
 export interface PreguntaPropuesta {

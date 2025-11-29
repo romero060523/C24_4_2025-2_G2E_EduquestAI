@@ -3,11 +3,13 @@ package com.eduquestia.backend.service.impl;
 import com.eduquestia.backend.dto.request.GenerarActividadesAdaptadasRequest;
 import com.eduquestia.backend.dto.response.ActividadesAdaptadasResponse;
 import com.eduquestia.backend.entity.*;
-import com.eduquestia.backend.exception.ResourceNotFoundException;
-import com.eduquestia.backend.exception.UnauthorizedException;
+import com.eduquestia.backend.exceptions.ResourceNotFoundException;
+import com.eduquestia.backend.exceptions.UnauthorizedException;
 import com.eduquestia.backend.repository.*;
 import com.eduquestia.backend.service.ActividadesAdaptadasAIService;
 import com.eduquestia.backend.service.GeminiService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -50,11 +52,27 @@ public class ActividadesAdaptadasAIServiceImpl implements ActividadesAdaptadasAI
             throw new ResourceNotFoundException("El curso no tiene estudiantes inscritos");
         }
 
-        List<UUID> estudiantesIds = inscripciones.stream()
-                .map(i -> i.getEstudiante().getId())
-                .collect(Collectors.toList());
+        // Determinar si se generarán actividades para TODO el curso o para un ESTUDIANTE específico
+        List<UUID> estudiantesIds;
+        if (request.getEstudianteId() != null) {
+            UUID estudianteId = request.getEstudianteId();
 
-        // Analizar el nivel promedio de los estudiantes
+            boolean perteneceAlCurso = inscripciones.stream()
+                    .anyMatch(i -> i.getEstudiante() != null
+                            && estudianteId.equals(i.getEstudiante().getId()));
+
+            if (!perteneceAlCurso) {
+                throw new UnauthorizedException("El estudiante no pertenece a este curso");
+            }
+
+            estudiantesIds = List.of(estudianteId);
+        } else {
+            estudiantesIds = inscripciones.stream()
+                    .map(i -> i.getEstudiante().getId())
+                    .collect(Collectors.toList());
+        }
+
+        // Analizar el nivel (del grupo o del estudiante, según la lista recibida)
         String nivelPromedio = analizarNivelEstudiantes(estudiantesIds, request.getCursoId());
 
         // Construir contexto para la IA
@@ -190,35 +208,55 @@ public class ActividadesAdaptadasAIServiceImpl implements ActividadesAdaptadasAI
 
     private List<ActividadesAdaptadasResponse.ActividadPropuesta> parsearActividades(
             String respuestaIA, int cantidadPreguntas) {
-        
-        // Esta es una implementación simplificada
-        // En producción, deberías usar un parser JSON robusto como Jackson o Gson
-        // Por ahora, creamos actividades de ejemplo basadas en la respuesta
-        
+
         List<ActividadesAdaptadasResponse.ActividadPropuesta> actividades = new ArrayList<>();
-        
+
         try {
-            // Intentar extraer información de la respuesta de la IA
-            // Si la respuesta contiene JSON válido, parsearlo
-            // Si no, crear actividades basadas en el texto
-            
-            // Por simplicidad, creamos una actividad de ejemplo
-            ActividadesAdaptadasResponse.ActividadPropuesta actividad = 
-                    ActividadesAdaptadasResponse.ActividadPropuesta.builder()
-                    .titulo("Actividad Adaptada Generada por IA")
-                    .descripcion("Esta actividad ha sido generada automáticamente basándose en el nivel promedio de los estudiantes. " + respuestaIA.substring(0, Math.min(200, respuestaIA.length())))
-                    .tipo("evaluacion")
-                    .dificultad("medio")
-                    .preguntas(crearPreguntasEjemplo(cantidadPreguntas))
-                    .build();
-            
-            actividades.add(actividad);
+            // Limpiar posibles fences de markdown ```json ... ```
+            String cleaned = respuestaIA.trim();
+            if (cleaned.startsWith("```")) {
+                int firstNewLine = cleaned.indexOf('\n');
+                if (firstNewLine != -1) {
+                    cleaned = cleaned.substring(firstNewLine + 1);
+                }
+                int lastFence = cleaned.lastIndexOf("```");
+                if (lastFence != -1) {
+                    cleaned = cleaned.substring(0, lastFence);
+                }
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(cleaned);
+            JsonNode actividadesNode = root.path("actividades");
+
+            if (actividadesNode.isArray() && actividadesNode.size() > 0) {
+                for (JsonNode actNode : actividadesNode) {
+                    ActividadesAdaptadasResponse.ActividadPropuesta actividad =
+                            mapper.treeToValue(actNode, ActividadesAdaptadasResponse.ActividadPropuesta.class);
+
+                    // Asegurar preguntas y limitar a la cantidad solicitada
+                    if (actividad.getPreguntas() != null && !actividad.getPreguntas().isEmpty()) {
+                        List<ActividadesAdaptadasResponse.PreguntaPropuesta> limitadas =
+                                actividad.getPreguntas().stream()
+                                        .limit(cantidadPreguntas)
+                                        .collect(Collectors.toList());
+                        actividad.setPreguntas(limitadas);
+                    } else {
+                        actividad.setPreguntas(crearPreguntasEjemplo(cantidadPreguntas));
+                    }
+
+                    actividades.add(actividad);
+                }
+            }
         } catch (Exception e) {
             log.error("Error al parsear actividades de la IA: {}", e.getMessage());
-            // Crear actividades de ejemplo en caso de error
+        }
+
+        // Si no se pudo parsear nada, usar actividad de ejemplo
+        if (actividades.isEmpty()) {
             actividades.add(crearActividadEjemplo(cantidadPreguntas));
         }
-        
+
         return actividades;
     }
 

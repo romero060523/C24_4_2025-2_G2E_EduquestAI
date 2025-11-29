@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/actividades-adaptadas-ai")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "http://localhost:19006", "http://localhost:3001"})
@@ -26,7 +25,7 @@ public class ActividadesAdaptadasAIController {
      * Generar actividades adaptadas para un curso
      * POST /api/v1/actividades-adaptadas-ai/generar
      */
-    @PostMapping("/generar")
+    @PostMapping("/actividades-adaptadas-ai/generar")
     public ResponseEntity<ApiResponse<ActividadesAdaptadasResponse>> generarActividadesAdaptadas(
             @Valid @RequestBody GenerarActividadesAdaptadasRequest request,
             @RequestHeader("X-Profesor-Id") UUID profesorId) {

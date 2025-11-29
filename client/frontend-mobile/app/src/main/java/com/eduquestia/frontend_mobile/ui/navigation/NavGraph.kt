@@ -20,6 +20,7 @@ import com.eduquestia.frontend_mobile.ui.screens.missions.MissionsScreen
 import com.eduquestia.frontend_mobile.ui.screens.profile.ProfileScreen
 import com.eduquestia.frontend_mobile.ui.screens.ranking.RankingScreen
 import com.eduquestia.frontend_mobile.ui.screens.rewards.RewardsScreen
+import com.eduquestia.frontend_mobile.ui.screens.settings.SettingsScreen
 import com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -86,6 +87,10 @@ fun NavGraph(
 
         composable(Screen.Profile.route) {
             ProfileScreen(navController = navController)
+        }
+
+        composable(Screen.Settings.route) {
+            SettingsScreen(navController = navController)
         }
     }
 }

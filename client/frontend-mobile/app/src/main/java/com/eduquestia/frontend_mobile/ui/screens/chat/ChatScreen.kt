@@ -272,8 +272,8 @@ fun ChatScreen(
                                 .padding(8.dp),
                             horizontalArrangement = Arrangement.Start
                         ) {
-                            Box(
-                                modifier = Modifier
+    Box(
+        modifier = Modifier
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(BackgroundWhite)
                                     .padding(16.dp)
@@ -303,7 +303,7 @@ fun ChatScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+            .padding(16.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = BackgroundWhite),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)

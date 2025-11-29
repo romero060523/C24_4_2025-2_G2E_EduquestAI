@@ -1,6 +1,11 @@
 package com.eduquestia.frontend_mobile.ui.screens.missions
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,15 +19,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.eduquestia.frontend_mobile.data.local.TokenManager
 import com.eduquestia.frontend_mobile.data.model.MisionEstudiante
+import com.eduquestia.frontend_mobile.data.remote.FirebaseStorageService
+import com.eduquestia.frontend_mobile.data.remote.TipoArchivo
+import com.eduquestia.frontend_mobile.data.remote.UploadState
 import com.eduquestia.frontend_mobile.data.repository.MisionRepository
 import com.eduquestia.frontend_mobile.ui.theme.*
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -36,6 +48,7 @@ fun MissionDetailScreen(
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
     val misionRepository = remember { MisionRepository() }
+    val firebaseStorage = remember { FirebaseStorageService() }
     val scope = rememberCoroutineScope()
 
     var mision by remember { mutableStateOf<MisionEstudiante?>(null) }
@@ -47,6 +60,24 @@ fun MissionDetailScreen(
     var submitSuccess by remember { mutableStateOf(false) }
     var submitError by remember { mutableStateOf<String?>(null) }
     var puntosGanados by remember { mutableStateOf(0) }
+
+    // Estados para archivo adjunto
+    var archivoSeleccionado by remember { mutableStateOf<Uri?>(null) }
+    var tipoArchivoSeleccionado by remember { mutableStateOf<TipoArchivo?>(null) }
+    var uploadProgress by remember { mutableStateOf(0) }
+    var isUploading by remember { mutableStateOf(false) }
+    var archivoUrl by remember { mutableStateOf<String?>(null) }
+
+    // Launcher para seleccionar archivos
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            archivoSeleccionado = it
+            tipoArchivoSeleccionado = firebaseStorage.detectarTipoArchivo(it)
+                ?: TipoArchivo.DOCUMENTO
+        }
+    }
 
     // Verificar si la fecha límite ha expirado
     fun haExpirado(fechaLimite: String?): Boolean {
@@ -572,6 +603,210 @@ fun MissionDetailScreen(
                                         shape = RoundedCornerShape(12.dp)
                                     )
 
+                                    // Sección de archivo adjunto
+                                    Text(
+                                        text = "Archivo adjunto (opcional)",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextSecondary
+                                    )
+
+                                    // Botones para seleccionar tipo de archivo
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // Botón Imagen
+                                        OutlinedButton(
+                                            onClick = { filePickerLauncher.launch("image/*") },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                contentColor = EduQuestBlue
+                                            ),
+                                            enabled = !isUploading && !isSubmitting
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Image,
+                                                contentDescription = "Imagen",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Imagen", fontSize = 12.sp)
+                                        }
+
+                                        // Botón Video
+                                        OutlinedButton(
+                                            onClick = { filePickerLauncher.launch("video/*") },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                contentColor = EduQuestPurple
+                                            ),
+                                            enabled = !isUploading && !isSubmitting
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.VideoFile,
+                                                contentDescription = "Video",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Video", fontSize = 12.sp)
+                                        }
+
+                                        // Botón PDF
+                                        OutlinedButton(
+                                            onClick = { filePickerLauncher.launch("application/pdf") },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                contentColor = AccentOrange
+                                            ),
+                                            enabled = !isUploading && !isSubmitting
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PictureAsPdf,
+                                                contentDescription = "PDF",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("PDF", fontSize = 12.sp)
+                                        }
+                                    }
+
+                                    // Preview del archivo seleccionado
+                                    archivoSeleccionado?.let { uri ->
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = EduQuestLightBlue
+                                            )
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                // Preview según tipo
+                                                when (tipoArchivoSeleccionado) {
+                                                    TipoArchivo.IMAGEN -> {
+                                                        AsyncImage(
+                                                            model = uri,
+                                                            contentDescription = "Preview",
+                                                            modifier = Modifier
+                                                                .size(60.dp)
+                                                                .clip(RoundedCornerShape(8.dp)),
+                                                            contentScale = ContentScale.Crop
+                                                        )
+                                                    }
+                                                    TipoArchivo.VIDEO -> {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(60.dp)
+                                                                .clip(RoundedCornerShape(8.dp))
+                                                                .background(EduQuestPurple.copy(alpha = 0.2f)),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.PlayCircle,
+                                                                contentDescription = "Video",
+                                                                tint = EduQuestPurple,
+                                                                modifier = Modifier.size(32.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                    TipoArchivo.PDF, TipoArchivo.DOCUMENTO -> {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(60.dp)
+                                                                .clip(RoundedCornerShape(8.dp))
+                                                                .background(AccentOrange.copy(alpha = 0.2f)),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.PictureAsPdf,
+                                                                contentDescription = "PDF",
+                                                                tint = AccentOrange,
+                                                                modifier = Modifier.size(32.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                    null -> {}
+                                                }
+
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "Archivo seleccionado",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = TextPrimary
+                                                    )
+                                                    Text(
+                                                        text = tipoArchivoSeleccionado?.name?.lowercase()
+                                                            ?.replaceFirstChar { it.uppercase() } ?: "Archivo",
+                                                        fontSize = 12.sp,
+                                                        color = TextSecondary
+                                                    )
+
+                                                    // Barra de progreso durante subida
+                                                    if (isUploading) {
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        LinearProgressIndicator(
+                                                            progress = { uploadProgress / 100f },
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .height(4.dp)
+                                                                .clip(RoundedCornerShape(2.dp)),
+                                                            color = EduQuestBlue
+                                                        )
+                                                        Text(
+                                                            text = "Subiendo... $uploadProgress%",
+                                                            fontSize = 10.sp,
+                                                            color = EduQuestBlue
+                                                        )
+                                                    }
+
+                                                    // Mostrar si ya se subió
+                                                    archivoUrl?.let {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.CheckCircle,
+                                                                contentDescription = "Subido",
+                                                                tint = AccentGreen,
+                                                                modifier = Modifier.size(14.dp)
+                                                            )
+                                                            Text(
+                                                                text = "Archivo listo",
+                                                                fontSize = 10.sp,
+                                                                color = AccentGreen
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                // Botón eliminar
+                                                if (!isUploading) {
+                                                    IconButton(
+                                                        onClick = {
+                                                            archivoSeleccionado = null
+                                                            tipoArchivoSeleccionado = null
+                                                            archivoUrl = null
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Close,
+                                                            contentDescription = "Eliminar",
+                                                            tint = AccentRed
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     OutlinedTextField(
                                         value = comentarios,
                                         onValueChange = { comentarios = it },
@@ -610,10 +845,39 @@ fun MissionDetailScreen(
                                                 try {
                                                     val userId = tokenManager.getUserId()
                                                     if (userId != null) {
+                                                        // Si hay archivo seleccionado y no se ha subido, subirlo primero
+                                                        if (archivoSeleccionado != null && archivoUrl == null) {
+                                                            isUploading = true
+                                                            firebaseStorage.subirArchivo(
+                                                                uri = archivoSeleccionado!!,
+                                                                misionId = misionId,
+                                                                estudianteId = userId,
+                                                                tipo = tipoArchivoSeleccionado ?: TipoArchivo.DOCUMENTO
+                                                            ).collectLatest { state ->
+                                                                when (state) {
+                                                                    is UploadState.Loading -> {
+                                                                        uploadProgress = state.progress
+                                                                    }
+                                                                    is UploadState.Success -> {
+                                                                        archivoUrl = state.downloadUrl
+                                                                        isUploading = false
+                                                                    }
+                                                                    is UploadState.Error -> {
+                                                                        submitError = "Error al subir archivo: ${state.message}"
+                                                                        isUploading = false
+                                                                        isSubmitting = false
+                                                                        return@collectLatest
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Completar la misión
                                                         misionRepository.completarMision(
                                                             misionId = misionId,
                                                             estudianteId = userId,
                                                             contenidoEntrega = contenidoEntrega,
+                                                            archivoUrl = archivoUrl,
                                                             comentarios = comentarios.ifBlank { null }
                                                         ).onSuccess { result ->
                                                             puntosGanados =
@@ -633,10 +897,11 @@ fun MissionDetailScreen(
                                                         e.message ?: "Error al enviar"
                                                 } finally {
                                                     isSubmitting = false
+                                                    isUploading = false
                                                 }
                                             }
                                         },
-                                        enabled = contenidoEntrega.isNotBlank() && !isSubmitting,
+                                        enabled = contenidoEntrega.isNotBlank() && !isSubmitting && !isUploading,
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = EduQuestBlue,
                                             disabledContainerColor = EduQuestBlue.copy(alpha = 0.5f)
@@ -646,10 +911,15 @@ fun MissionDetailScreen(
                                             .fillMaxWidth()
                                             .height(56.dp)
                                     ) {
-                                        if (isSubmitting) {
+                                        if (isSubmitting || isUploading) {
                                             CircularProgressIndicator(
                                                 color = Color.White,
                                                 modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                if (isUploading) "Subiendo archivo..." else "Enviando...",
+                                                fontSize = 14.sp
                                             )
                                         } else {
                                             Icon(

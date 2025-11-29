@@ -10,6 +10,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +40,20 @@ fun CoursesScreen(
     val tokenManager = remember { TokenManager(context) }
     val cursoRepository = remember { CursoRepository() }
     val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    val authRepository = remember { com.eduquestia.frontend_mobile.data.repository.AuthRepository(tokenManager = tokenManager) }
+    val authViewModel: com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel = viewModel {
+        com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel(authRepository = authRepository)
+    }
+
+    var userName by remember { mutableStateOf("Usuario") }
+    var userEmail by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        userName = tokenManager.getUserNombre() ?: "Usuario"
+        userEmail = tokenManager.getUserEmail() ?: ""
+    }
 
     var cursos by remember { mutableStateOf<List<CursoEstudiante>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -68,7 +86,40 @@ fun CoursesScreen(
         }
     }
 
-    Scaffold(
+    val currentRoute = com.eduquestia.frontend_mobile.ui.navigation.Screen.Courses.route
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            com.eduquestia.frontend_mobile.ui.components.AppDrawer(
+                currentRoute = currentRoute,
+                userName = userName,
+                userEmail = userEmail,
+                onMenuItemClick = { item ->
+                    scope.launch { drawerState.close() }
+                    when {
+                        item.isLogout -> {
+                            authViewModel.logout()
+                            navController?.navigate(com.eduquestia.frontend_mobile.ui.navigation.Screen.Login.route) {
+                                popUpTo(com.eduquestia.frontend_mobile.ui.navigation.Screen.Home.route) { inclusive = true }
+                            }
+                        }
+                        item.route.isNotEmpty() -> {
+                            navController?.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    }
+                },
+                onClose = { scope.launch { drawerState.close() } }
+            )
+        }
+    ) {
+        Scaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -97,7 +148,7 @@ fun CoursesScreen(
                             tint = TextPrimary
                         )
                     }
-                    IconButton(onClick = { /* TODO: Menú */ }) {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
                         Icon(
                             imageVector = Icons.Default.Menu,
                             contentDescription = "Menú",
@@ -218,6 +269,7 @@ fun CoursesScreen(
                 )
             }
         }
+    }
     }
 }
 

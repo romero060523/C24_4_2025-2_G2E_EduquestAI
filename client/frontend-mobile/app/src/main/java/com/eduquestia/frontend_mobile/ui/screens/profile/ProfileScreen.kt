@@ -10,6 +10,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +30,7 @@ import com.eduquestia.frontend_mobile.ui.components.BottomNavBar
 import com.eduquestia.frontend_mobile.ui.theme.*
 import com.eduquestia.frontend_mobile.ui.viewmodel.ProfileTab
 import com.eduquestia.frontend_mobile.ui.viewmodel.ProfileViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +39,22 @@ fun ProfileScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val tokenManager = remember { TokenManager(context) }
+    val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    val authRepository = remember { com.eduquestia.frontend_mobile.data.repository.AuthRepository(tokenManager = tokenManager) }
+    val authViewModel: com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel = viewModel {
+        com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel(authRepository = authRepository)
+    }
+
+    var userName by remember { mutableStateOf("Usuario") }
+    var userEmail by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        userName = tokenManager.getUserNombre() ?: "Usuario"
+        userEmail = tokenManager.getUserEmail() ?: ""
+    }
+
     val viewModel: ProfileViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -52,7 +73,40 @@ fun ProfileScreen(
         viewModel.loadProfileData()
     }
 
-    Scaffold(
+    val currentRoute = com.eduquestia.frontend_mobile.ui.navigation.Screen.Profile.route
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            com.eduquestia.frontend_mobile.ui.components.AppDrawer(
+                currentRoute = currentRoute,
+                userName = userName,
+                userEmail = userEmail,
+                onMenuItemClick = { item ->
+                    scope.launch { drawerState.close() }
+                    when {
+                        item.isLogout -> {
+                            authViewModel.logout()
+                            navController?.navigate(com.eduquestia.frontend_mobile.ui.navigation.Screen.Login.route) {
+                                popUpTo(com.eduquestia.frontend_mobile.ui.navigation.Screen.Home.route) { inclusive = true }
+                            }
+                        }
+                        item.route.isNotEmpty() -> {
+                            navController?.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    }
+                },
+                onClose = { scope.launch { drawerState.close() } }
+            )
+        }
+    ) {
+        Scaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -81,14 +135,16 @@ fun ProfileScreen(
                             tint = TextPrimary
                         )
                     }
-                    IconButton(onClick = { /* TODO: Configuración */ }) {
+                    IconButton(onClick = {
+                        navController?.navigate(com.eduquestia.frontend_mobile.ui.navigation.Screen.Settings.route)
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Configuración",
                             tint = TextPrimary
                         )
                     }
-                    IconButton(onClick = { /* TODO: Menú */ }) {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
                         Icon(
                             imageVector = Icons.Default.Menu,
                             contentDescription = "Menú",
@@ -163,8 +219,7 @@ fun ProfileScreen(
                 StatisticsGrid(
                     cursosCompletados = 3, // TODO: Obtener del backend
                     misionesCompletadas = uiState.perfilGamificado?.misionesCompletadas ?: 0,
-                    horasEstudio = 124, // TODO: Obtener del backend
-                    rachaActual = "7 días" // TODO: Obtener del backend
+                    horasEstudio = 124 // TODO: Obtener del backend
                 )
             }
 
@@ -184,7 +239,6 @@ fun ProfileScreen(
                             nombreCompleto = uiState.nombreUsuario,
                             email = uiState.email,
                             fechaNacimiento = "15/05/2005", // TODO: Obtener del backend
-                            ubicacion = "Madrid, España", // TODO: Obtener del backend
                             biografia = "Estudiante apasionada por las matemáticas y la literatura. Me encanta aprender cosas nuevas y compartir conocimientos con mis compañeros.",
                             onSaveClick = { /* TODO: Guardar cambios */ }
                         )
@@ -208,10 +262,23 @@ fun ProfileScreen(
                 }
                 ProfileTab.CONFIGURACION -> {
                     item {
-                        Text(
-                            text = "Configuración - En desarrollo",
-                            modifier = Modifier.padding(16.dp)
-                        )
+                        Button(
+                            onClick = { navController?.navigate(com.eduquestia.frontend_mobile.ui.navigation.Screen.Settings.route) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = EduQuestBlue
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Configuración",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Ir a Configuración")
+                        }
                     }
                 }
             }
@@ -230,6 +297,7 @@ fun ProfileScreen(
                 }
             }
         }
+    }
     }
 }
 
@@ -397,8 +465,7 @@ fun RankingGlobalCard(
 fun StatisticsGrid(
     cursosCompletados: Int,
     misionesCompletadas: Int,
-    horasEstudio: Int,
-    rachaActual: String
+    horasEstudio: Int
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -420,12 +487,6 @@ fun StatisticsGrid(
             label = "Horas de estudio",
             value = "$horasEstudio",
             color = EduQuestPurple
-        )
-        StatRow(
-            icon = Icons.Default.Favorite,
-            label = "Racha actual",
-            value = rachaActual,
-            color = AccentOrange
         )
     }
 }
@@ -485,28 +546,28 @@ fun ProfileTabs(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ProfileTab(
+        ProfileTabItem(
             icon = Icons.Default.Person,
             label = "Información",
             selected = selectedTab == ProfileTab.INFORMACION,
             onClick = { onTabSelected(ProfileTab.INFORMACION) },
             modifier = Modifier.weight(1f)
         )
-        ProfileTab(
+        ProfileTabItem(
             icon = Icons.Default.Star,
             label = "Logros",
             selected = selectedTab == ProfileTab.LOGROS,
             onClick = { onTabSelected(ProfileTab.LOGROS) },
             modifier = Modifier.weight(1f)
         )
-        ProfileTab(
+        ProfileTabItem(
             icon = Icons.Default.History,
             label = "Actividad",
             selected = selectedTab == ProfileTab.ACTIVIDAD,
             onClick = { onTabSelected(ProfileTab.ACTIVIDAD) },
             modifier = Modifier.weight(1f)
         )
-        ProfileTab(
+        ProfileTabItem(
             icon = Icons.Default.Settings,
             label = "Configuración",
             selected = selectedTab == ProfileTab.CONFIGURACION,
@@ -517,7 +578,7 @@ fun ProfileTabs(
 }
 
 @Composable
-fun ProfileTab(
+fun ProfileTabItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     selected: Boolean,
@@ -551,7 +612,6 @@ fun PersonalInfoSection(
     nombreCompleto: String,
     email: String,
     fechaNacimiento: String,
-    ubicacion: String,
     biografia: String,
     onSaveClick: () -> Unit
 ) {
@@ -624,26 +684,6 @@ fun PersonalInfoSection(
                     Icon(
                         imageVector = Icons.Default.CalendarToday,
                         contentDescription = "Fecha"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                readOnly = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = BackgroundGray,
-                    unfocusedContainerColor = BackgroundGray
-                ),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            // Campo Ubicación
-            OutlinedTextField(
-                value = ubicacion,
-                onValueChange = { /* TODO: Actualizar estado */ },
-                label = { Text("Ubicación") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Ubicación"
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),

@@ -23,11 +23,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.eduquestia.frontend_mobile.data.local.TokenManager
+import com.eduquestia.frontend_mobile.data.repository.AuthRepository
 import com.eduquestia.frontend_mobile.data.repository.GamificacionRepository
 import com.eduquestia.frontend_mobile.data.repository.MisionRepository
+import com.eduquestia.frontend_mobile.ui.components.AppDrawer
 import com.eduquestia.frontend_mobile.ui.components.BottomNavBar
+import com.eduquestia.frontend_mobile.ui.components.drawerMenuItems
+import com.eduquestia.frontend_mobile.ui.navigation.Screen
 import com.eduquestia.frontend_mobile.ui.theme.*
+import com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel
 import com.eduquestia.frontend_mobile.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -38,6 +44,9 @@ fun HomeScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val tokenManager = remember { TokenManager(context) }
+    val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
     val viewModel: HomeViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -52,53 +61,95 @@ fun HomeScreen(
     )
     val uiState by viewModel.uiState.collectAsState()
 
-    // Cargar datos al iniciar
-    LaunchedEffect(Unit) {
-        viewModel.loadHomeData()
+    val authRepository = remember { AuthRepository(tokenManager = tokenManager) }
+    val authViewModel: AuthViewModel = viewModel {
+        AuthViewModel(authRepository = authRepository)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "EduQuest Logo",
-                            tint = EduQuestBlue
-                        )
-                        Text(
-                            text = "EduQuest",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
+    var userName by remember { mutableStateOf("Usuario") }
+    var userEmail by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadHomeData()
+        userName = tokenManager.getUserNombre() ?: "Usuario"
+        userEmail = tokenManager.getUserEmail() ?: ""
+    }
+
+    val currentRoute = Screen.Home.route
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                currentRoute = currentRoute,
+                userName = userName,
+                userEmail = userEmail,
+                onMenuItemClick = { item ->
+                    scope.launch { drawerState.close() }
+                    when {
+                        item.isLogout -> {
+                            authViewModel.logout()
+                            navController?.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Home.route) { inclusive = true }
+                            }
+                        }
+                        item.route.isNotEmpty() -> {
+                            navController?.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* TODO: Notificaciones */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notificaciones",
-                            tint = TextPrimary
-                        )
-                    }
-                    IconButton(onClick = { /* TODO: Menú */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menú",
-                            tint = TextPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite
-                )
+                onClose = { scope.launch { drawerState.close() } }
             )
-        },
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "EduQuest Logo",
+                                tint = EduQuestBlue
+                            )
+                            Text(
+                                text = "EduQuest",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { /* TODO: Notificaciones */ }) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notificaciones",
+                                tint = TextPrimary
+                            )
+                        }
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menú",
+                                tint = TextPrimary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = BackgroundWhite
+                    )
+                )
+            },
         containerColor = BackgroundGray,
         bottomBar = {
             navController?.let { BottomNavBar(it) }
@@ -146,15 +197,6 @@ fun HomeScreen(
                         valueColor = AccentGreen
                     )
 
-                    // Racha Actual
-                    StatCard(
-                        icon = Icons.Default.Favorite,
-                        title = "Racha Actual",
-                        value = "7 días", // TODO: Calcular desde backend
-                        subtitle = "¡Sigue conectándote!",
-                        modifier = Modifier.weight(1f),
-                        valueColor = EduQuestPurple
-                    )
                 }
             }
 
@@ -224,6 +266,7 @@ fun HomeScreen(
                 }
             }
         }
+    }
     }
 }
 

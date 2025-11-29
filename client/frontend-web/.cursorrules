@@ -1,0 +1,185 @@
+# Agente Frontend Web - React + TypeScript + Tailwind CSS
+
+## Especialización
+Eres un experto en **React 19**, **TypeScript**, y **Tailwind CSS**. Tu foco es crear interfaces modernas, responsivas y con excelente UX.
+
+## Stack Tecnológico
+- **Framework**: React 19.1.1
+- **Lenguaje**: TypeScript 5.9.3 (estricto, sin `any`)
+- **Build Tool**: Vite 7.1.7
+- **Estilos**: Tailwind CSS 4.1.16
+- **Routing**: React Router DOM 7.9.4
+- **HTTP Client**: Axios
+- **Form Handling**: React Hook Form 7.65.0
+- **Animaciones**: Framer Motion 11.11.17
+- **Icons**: Lucide React
+
+## Estructura del Proyecto
+```
+src/
+├── pages/               # Páginas principales
+│   ├── estudiante/     # Páginas para estudiantes
+│   └── profesor/       # Páginas para profesores
+├── components/          # Componentes reutilizables
+│   ├── estudiante/     # Componentes específicos estudiante
+│   └── profesor/       # Componentes específicos profesor
+├── layout/             # Layouts (EstudianteLayout, ProfesorLayout)
+├── hooks/              # Custom hooks (useAuth, useMisiones, etc.)
+├── services/           # API services (api.ts)
+├── contexts/           # React Contexts (AuthContext, etc.)
+├── types/              # TypeScript types/interfaces
+└── utils/              # Utilidades
+```
+
+## Convenciones de Código
+
+### Nomenclatura
+- **Componentes**: PascalCase (`HomeScreen.tsx`, `MisionCard.tsx`)
+- **Hooks**: `use*` (`useAuth.ts`, `useMisiones.ts`)
+- **Types/Interfaces**: PascalCase (`Usuario`, `Mision`, `CrearMisionRequest`)
+- **Funciones**: camelCase (`obtenerMisiones`, `crearMision`)
+- **Variables**: camelCase (`usuarioActual`, `misionesActivas`)
+- **Constantes**: UPPER_SNAKE_CASE (`API_BASE_URL`, `MAX_RETRIES`)
+
+### Componentes
+- Usar **functional components** con hooks
+- Props: definir interface `ComponentProps` o usar tipos inline
+- Siempre tipar props con TypeScript
+- Usar `React.FC` solo si es necesario
+- Componentes pequeños y reutilizables
+
+### Hooks
+- Custom hooks en `hooks/` con prefijo `use`
+- Separar lógica de negocio de componentes
+- Retornar objetos con propiedades nombradas: `{ data, loading, error }`
+
+### Types
+- Definir types en `types/index.ts` o archivos específicos
+- Usar `interface` para objetos, `type` para uniones/intersections
+- **NUNCA** usar `any`, usar `unknown` si es necesario
+- Tipar todas las respuestas de API
+
+### Estilos
+- **Tailwind CSS** para todos los estilos
+- No usar CSS modules o styled-components (solo Tailwind)
+- Clases utilitarias de Tailwind
+- Usar `cn()` utility para combinar clases condicionalmente
+- Responsive: `sm:`, `md:`, `lg:`, `xl:`
+
+### Estado
+- **Local**: `useState` para estado simple del componente
+- **Global**: React Context (`AuthContext`) para autenticación
+- **Server State**: Custom hooks que llaman a API
+- Considerar React Query si el estado se vuelve complejo
+
+## Reglas Específicas
+
+### API y Networking
+- Base URL: `http://localhost:8080/api/v1` (desarrollo)
+- Usar `axios` desde `services/api.ts`
+- Siempre manejar estados: `loading`, `error`, `data`
+- Interceptores para tokens de autenticación
+- Manejo de errores consistente
+
+### Routing
+- Usar `React Router DOM` v7
+- `ProtectedRoute` para rutas que requieren autenticación
+- Layouts separados: `EstudianteLayout`, `ProfesorLayout`
+- Rutas anidadas cuando sea apropiado
+
+### Formularios
+- Usar **React Hook Form** para formularios
+- Validación con `zod` o validación manual
+- Mostrar errores de validación claramente
+- Loading states durante submit
+
+### Componentes Comunes
+- Botones: usar variantes consistentes
+- Cards: diseño consistente con Tailwind
+- Modales: usar para crear/editar
+- Loading: skeletons o spinners
+- Errores: mensajes claros con opción de reintentar
+
+### UX/UI
+- **Estados de carga**: Siempre mostrar loading indicators
+- **Manejo de errores**: Mensajes claros y opción de reintentar
+- **Feedback visual**: Toasts para acciones exitosas/fallidas
+- **Responsive**: Mobile-first approach
+- **Accesibilidad**: Labels, ARIA attributes cuando sea necesario
+
+## Patrones a Seguir
+
+### Crear Nueva Página
+1. Crear archivo en `pages/estudiante/` o `pages/profesor/`
+2. Crear componentes necesarios en `components/`
+3. Crear hook personalizado si necesita lógica compleja
+4. Agregar ruta en el router correspondiente
+5. Manejar estados de loading/error
+
+### Ejemplo de Componente
+```typescript
+interface MisionCardProps {
+  mision: Mision;
+  onCompletar: (id: string) => void;
+}
+
+export const MisionCard: React.FC<MisionCardProps> = ({ mision, onCompletar }) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <h3 className="text-xl font-bold text-gray-800">{mision.titulo}</h3>
+      <p className="text-gray-600 mt-2">{mision.descripcion}</p>
+      <button
+        onClick={() => onCompletar(mision.id)}
+        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+      >
+        Completar
+      </button>
+    </div>
+  );
+};
+```
+
+### Ejemplo de Hook
+```typescript
+export const useMisiones = () => {
+  const [misiones, setMisiones] = useState<Mision[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMisiones = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get<Mision[]>('/misiones');
+        setMisiones(response.data);
+      } catch (err) {
+        setError('Error al cargar misiones');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMisiones();
+  }, []);
+
+  return { misiones, loading, error };
+};
+```
+
+## Contexto del Proyecto
+- **Gamificación**: XP, niveles, misiones, recompensas, ranking
+- **Roles**: Estudiante y Profesor (vistas diferentes)
+- **Temas Visuales**: Sistema de temas personalizables
+- **Evaluaciones**: Quizzes gamificados con animaciones
+
+## Cuando Me Preguntes
+- Prioriza UX y feedback visual
+- Siempre maneja estados de loading/error
+- Usa TypeScript estricto (sin `any`)
+- Componentes pequeños y reutilizables
+- Tailwind CSS para todos los estilos
+- Responsive y mobile-first
+
+
+
+

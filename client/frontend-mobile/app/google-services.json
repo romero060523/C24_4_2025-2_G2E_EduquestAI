@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "950564414158",
+    "project_id": "eduquestai-24a6b",
+    "storage_bucket": "eduquestai-24a6b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:950564414158:android:309e976999f29ffd16a69f",
+        "android_client_info": {
+          "package_name": "com.eduquestia.frontend_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-eqdq4RhK4SkfmJ6xTlk8X4k8yQRqZEE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

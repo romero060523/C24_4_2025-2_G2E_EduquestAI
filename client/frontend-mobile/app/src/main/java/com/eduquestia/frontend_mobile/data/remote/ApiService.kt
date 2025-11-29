@@ -3,7 +3,6 @@ package com.eduquestia.frontend_mobile.data.remote
 import com.eduquestia.frontend_mobile.data.model.ApiResponse
 import com.eduquestia.frontend_mobile.data.model.ChatRequest
 import com.eduquestia.frontend_mobile.data.model.ChatResponse
-import com.eduquestia.frontend_mobile.data.model.Curso
 import com.eduquestia.frontend_mobile.data.model.CursoEstudiante
 import com.eduquestia.frontend_mobile.data.model.LoginRequest
 import com.eduquestia.frontend_mobile.data.model.LoginResponse

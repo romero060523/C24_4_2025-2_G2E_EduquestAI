@@ -101,9 +101,9 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Subtítulo "Inicia sesión en tu cuenta"
+                // Subtítulo "Inicia sesión como estudiante"
                 Text(
-                    text = "Inicia sesión en tu cuenta",
+                    text = "Inicia sesión como estudiante",
                     fontSize = 14.sp,
                     color = TextSecondary
                 )
@@ -278,133 +278,55 @@ fun LoginScreen(
                 uiState.error?.let { error ->
                     if (emailError == null && passwordError == null) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = error,
-                            color = AccentRed,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center
-                        )
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = AccentRed.copy(alpha = 0.1f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = error,
+                                color = AccentRed,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Separador "O prueba los diferentes roles"
-                Row(
+                // Mensaje informativo para estudiantes
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    colors = CardDefaults.cardColors(
+                        containerColor = EduQuestLightBlue
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    HorizontalDivider(
-                        modifier = Modifier.weight(1f),
-                        color = TextLight
-                    )
-                    Text(
-                        text = "O prueba los diferentes roles",
-                        fontSize = 12.sp,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.weight(1f),
-                        color = TextLight
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Botones de roles
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Botón Estudiante
-                    OutlinedButton(
-                        onClick = { /* TODO: Auto-fill con credenciales de demo estudiante */ },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = EduQuestBlue
-                        ),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = Brush.horizontalGradient(listOf(EduQuestBlue, EduQuestBlue))
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "Estudiante",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Info",
+                            tint = EduQuestBlue,
+                            modifier = Modifier.size(20.dp)
                         )
-                    }
-
-                    // Botón Profesor
-                    OutlinedButton(
-                        onClick = { /* TODO: Auto-fill con credenciales de demo profesor */ },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = AccentGreen
-                        ),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = Brush.horizontalGradient(listOf(AccentGreen, AccentGreen))
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
                         Text(
-                            text = "Profesor",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    // Botón Admin
-                    OutlinedButton(
-                        onClick = { /* TODO: Auto-fill con credenciales de demo admin */ },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = EduQuestPurple
-                        ),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = Brush.horizontalGradient(listOf(EduQuestPurple, EduQuestPurple))
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = "Admin",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
+                            text = "Esta app es exclusiva para estudiantes. Si eres profesor, accede desde la versión web.",
+                            fontSize = 12.sp,
+                            color = TextSecondary,
+                            lineHeight = 16.sp
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Link de registro
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "¿No tienes una cuenta? ",
-                        fontSize = 14.sp,
-                        color = TextSecondary
-                    )
-                    Text(
-                        text = "Registrate aqui",
-                        fontSize = 14.sp,
-                        color = EduQuestBlue,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clickable { /* TODO: Navegar a registro */ }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Link "Volver al inicio"
-                Text(
-                    text = "- Volver al inicio",
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                    modifier = Modifier.clickable { /* TODO: Navegar a inicio público */ }
-                )
             }
         }
     }

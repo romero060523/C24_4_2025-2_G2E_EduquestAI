@@ -45,11 +45,13 @@ class MisionRepository(
         misionId: String,
         estudianteId: String,
         contenidoEntrega: String,
+        archivoUrl: String? = null,
         comentarios: String? = null
     ): Result<MisionEstudiante> {
         return try {
             val request = CompletarMisionRequest(
                 contenidoEntrega = contenidoEntrega,
+                archivoUrl = archivoUrl,
                 comentariosEstudiante = comentarios
             )
             val response = apiService.completarMision(misionId, request, estudianteId)

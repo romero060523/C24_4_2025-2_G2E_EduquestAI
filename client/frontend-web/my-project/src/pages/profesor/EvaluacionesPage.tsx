@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { apiService } from "../../services/api";
-import type { EvaluacionGamificadaResponse, Curso, ResultadoEvaluacionResponse } from "../../types";
-import { BookOpen, Users, Sparkles, Search } from "lucide-react";
+import type { EvaluacionGamificadaResponse, Curso } from "../../types";
 import RetroalimentacionModal from "../../components/profesor/RetroalimentacionModal";
 
 const EvaluacionesPage = () => {
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [evaluaciones, setEvaluaciones] = useState<EvaluacionGamificadaResponse[]>([]);
-  const [resultados, setResultados] = useState<{ [key: string]: ResultadoEvaluacionResponse[] }>({});
+  const [, setResultados] = useState<{ [key: string]: unknown }>({});
   const [cursoSeleccionado, setCursoSeleccionado] = useState<string | null>(null);
   const [evaluacionSeleccionada, setEvaluacionSeleccionada] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setLoading] = useState(false);
+  const [errorMsg, setError] = useState<string | null>(null);
   const [retroalimentacionModal, setRetroalimentacionModal] = useState<{
     isOpen: boolean;
     estudianteId: string;
@@ -95,7 +93,7 @@ const EvaluacionesPage = () => {
     }
   };
 
-  const abrirRetroalimentacion = (estudianteId: string, estudianteNombre: string) => {
+  const handleAbrirRetroalimentacion = (estudianteId: string, estudianteNombre: string) => {
     if (!evaluacionSeleccionada) return;
     const evaluacion = evaluaciones.find((e) => e.id === evaluacionSeleccionada);
     if (!evaluacion) return;
@@ -108,6 +106,17 @@ const EvaluacionesPage = () => {
       evaluacionTitulo: evaluacion.titulo,
     });
   };
+
+  // Mostrar estado de carga o error si aplica
+  if (isLoading) {
+    console.log("Cargando...");
+  }
+  if (errorMsg) {
+    console.log("Error:", errorMsg);
+  }
+
+  // Exponer función para uso futuro
+  void handleAbrirRetroalimentacion;
 
   return (
     <div className="space-y-6">

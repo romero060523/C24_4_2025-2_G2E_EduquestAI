@@ -15,7 +15,7 @@ public interface EvaluacionGamificadaRepository extends JpaRepository<Evaluacion
     
     List<EvaluacionGamificada> findByMisionIdAndActivoTrue(UUID misionId);
     
-    @Query("SELECT e FROM EvaluacionGamificada e JOIN FETCH e.preguntas p WHERE e.id = :id")
+    @Query("SELECT DISTINCT e FROM EvaluacionGamificada e LEFT JOIN FETCH e.preguntas p WHERE e.id = :id")
     Optional<EvaluacionGamificada> findByIdWithPreguntas(@Param("id") UUID id);
     
     @Query("SELECT e FROM EvaluacionGamificada e WHERE e.mision.id = :misionId AND e.activo = true")

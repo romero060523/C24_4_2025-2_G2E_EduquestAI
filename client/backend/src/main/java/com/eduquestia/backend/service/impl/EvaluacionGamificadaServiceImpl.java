@@ -283,8 +283,11 @@ public class EvaluacionGamificadaServiceImpl implements EvaluacionGamificadaServ
         // Por ahora permitimos ver cualquier resultado
 
         // Obtener todos los resultados de esta evaluación
-        // Necesitaríamos un método en el repositorio
-        return List.of(); // Por ahora
+        List<ResultadoEvaluacion> resultados = resultadoRepository.findByEvaluacionId(evaluacionId);
+        
+        return resultados.stream()
+                .map(this::convertirResultadoAResponse)
+                .collect(Collectors.toList());
     }
 
     @Override

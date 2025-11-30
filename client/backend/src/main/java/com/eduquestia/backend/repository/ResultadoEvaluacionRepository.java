@@ -20,6 +20,8 @@ public interface ResultadoEvaluacionRepository extends JpaRepository<ResultadoEv
     
     @Query("SELECT MAX(r.intentoNumero) FROM ResultadoEvaluacion r WHERE r.evaluacion.id = :evaluacionId AND r.estudiante.id = :estudianteId")
     Integer findMaxIntentoNumero(@Param("evaluacionId") UUID evaluacionId, @Param("estudianteId") UUID estudianteId);
+    
+    List<ResultadoEvaluacion> findByEvaluacionId(UUID evaluacionId);
 }
 
 

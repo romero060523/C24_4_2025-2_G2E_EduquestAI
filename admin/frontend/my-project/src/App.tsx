@@ -6,10 +6,15 @@ import Users from "./pages/Users";
 import Cursos from "./pages/Cursos";
 import ReglasGamificacion from "./pages/ReglasGamificacion";
 import Reportes from "./pages/Reportes";
+import ConfiguracionVisual from "./pages/ConfiguracionVisual";
 import LoginPage from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useTema } from "./hooks/useTema";
 
-export default function App() {
+function AppContent() {
+  // Cargar tema al iniciar
+  useTema();
+
   // Limpiar token en cada refresh/carga de la aplicación
   useEffect(() => {
     localStorage.removeItem("access");
@@ -34,8 +39,13 @@ export default function App() {
           <Route path="cursos" element={<Cursos />} />
           <Route path="reglas-gamificacion" element={<ReglasGamificacion />} />
           <Route path="reportes" element={<Reportes />} />
+          <Route path="configuracion-visual" element={<ConfiguracionVisual />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
+}
+
+export default function App() {
+  return <AppContent />;
 }

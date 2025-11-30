@@ -15,6 +15,7 @@ import com.eduquestia.backend.repository.ProgresoMisionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.lang.NonNull;
 
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Controlador de Curso - SOLO CONSULTAS
@@ -122,7 +124,7 @@ public class CursoController {
      * Lista todos los cursos activos
      */
     @GetMapping("/profesor/{profesorId}")
-    public ResponseEntity<Map<String, Object>> listarCursosPorProfesor(@PathVariable String profesorId) {
+    public ResponseEntity<Map<String, Object>> listarCursosPorProfesor(@PathVariable("profesorId") String profesorId) {
         List<Curso> cursos = cursoRepository.findByActivoTrue();
 
         Map<String, Object> response = new HashMap<>();
@@ -144,6 +146,34 @@ public class CursoController {
         response.put("success", true);
         response.put("data", cursos);
         response.put("message", "Cursos obtenidos exitosamente");
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Lista los estudiantes inscritos en un curso
+     * IMPORTANTE: Este endpoint debe ir ANTES de /{id} para evitar conflictos de rutas
+     */
+    @GetMapping("/{cursoId}/estudiantes")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Map<String, Object>> listarEstudiantesPorCurso(@PathVariable("cursoId") UUID cursoId) {
+        List<Inscripcion> inscripciones = inscripcionRepository.findByCursoId(cursoId);
+
+        List<Map<String, Object>> estudiantes = inscripciones.stream()
+                .filter(i -> i.getEstudiante() != null && i.getEstudiante().getActivo())
+                .map(i -> {
+                    Map<String, Object> est = new HashMap<>();
+                    est.put("id", i.getEstudiante().getId().toString());
+                    est.put("nombreCompleto", i.getEstudiante().getNombreCompleto());
+                    est.put("email", i.getEstudiante().getEmail());
+                    return est;
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", estudiantes);
+        response.put("message", "Estudiantes obtenidos exitosamente");
 
         return ResponseEntity.ok(response);
     }
@@ -173,7 +203,7 @@ public class CursoController {
      * Obtiene un curso por su código
      */
     @GetMapping("/codigo/{codigoCurso}")
-    public ResponseEntity<Map<String, Object>> obtenerCursoPorCodigo(@PathVariable String codigoCurso) {
+    public ResponseEntity<Map<String, Object>> obtenerCursoPorCodigo(@PathVariable("codigoCurso") String codigoCurso) {
         return cursoRepository.findByCodigoCurso(codigoCurso)
             .map(curso -> {
                 Map<String, Object> response = new HashMap<>();

@@ -21,6 +21,7 @@ import type {
   ResultadoEvaluacionResponse,
   OtorgarRecompensaRequest,
   RecompensaManualResponse,
+  SugerenciaIAResponse,
 } from "../types";
 
 // Configuración base de axios
@@ -538,6 +539,42 @@ class ApiService {
     });
     // El backend devuelve texto plano directamente
     return typeof response.data === 'string' ? response.data : String(response.data);
+  }
+
+  // ==================== TAREA 19: Retroalimentación Automática ====================
+  async generarRetroalimentacion(
+    request: import("../types").GenerarRetroalimentacionRequest
+  ): Promise<import("../types").RetroalimentacionResponse> {
+    const response = await this.api.post<{
+      success: boolean;
+      data: import("../types").RetroalimentacionResponse;
+      message: string;
+    }>("/retroalimentacion-ai/generar", request);
+    return response.data.data;
+  }
+
+  // ==================== TAREA 21: Actividades Adaptadas ====================
+  async generarActividadesAdaptadas(
+    request: import("../types").GenerarActividadesAdaptadasRequest
+  ): Promise<import("../types").ActividadesAdaptadasResponse> {
+    const response = await this.api.post<{
+      success: boolean;
+      data: import("../types").ActividadesAdaptadasResponse;
+      message: string;
+    }>("/actividades-adaptadas-ai/generar", request);
+    return response.data.data;
+  }
+
+  // ==================== SUGERENCIAS DE IA ====================
+  // Historia de Usuario #20: IA analiza progreso y sugiere metas
+
+  async obtenerSugerenciasIA(estudianteId: string): Promise<SugerenciaIAResponse> {
+    const response = await this.api.get<{
+      success: boolean;
+      data: SugerenciaIAResponse;
+      message: string;
+    }>(`/gamificacion/estudiante/${estudianteId}/sugerencias-ia`);
+    return response.data.data;
   }
 }
 

@@ -1,11 +1,14 @@
 package com.eduquestia.frontend_mobile.ui.screens.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,13 +19,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.eduquestia.frontend_mobile.R
+import com.eduquestia.frontend_mobile.data.local.AvatarManager
 import com.eduquestia.frontend_mobile.data.local.TokenManager
+import com.eduquestia.frontend_mobile.data.model.AvatarTipo
 import com.eduquestia.frontend_mobile.data.repository.AuthRepository
 import com.eduquestia.frontend_mobile.data.repository.GamificacionRepository
 import com.eduquestia.frontend_mobile.data.repository.MisionRepository
@@ -44,8 +52,12 @@ fun HomeScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val tokenManager = remember { TokenManager(context) }
+    val avatarManager = remember { AvatarManager(context) }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    // Estado del avatar
+    val selectedAvatar by avatarManager.selectedAvatar.collectAsState(initial = AvatarTipo.PERSONAJE_1)
 
     val viewModel: HomeViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
@@ -111,6 +123,15 @@ fun HomeScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menú",
+                                tint = TextPrimary
+                            )
+                        }
+                    },
                     title = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -137,13 +158,6 @@ fun HomeScreen(
                                 tint = TextPrimary
                             )
                         }
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Menú",
-                                tint = TextPrimary
-                            )
-                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = BackgroundWhite
@@ -162,13 +176,15 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Card de Bienvenida con Gradiente
+            // Card de Bienvenida estilo Habitica con avatar
             item {
                 WelcomeCard(
                     nombreUsuario = uiState.nombreUsuario,
                     nivel = uiState.perfilGamificado?.nivel ?: 1,
                     puntosTotales = uiState.perfilGamificado?.puntosTotales ?: 0,
-                    posicionRanking = uiState.posicionRanking
+                    posicionRanking = uiState.posicionRanking,
+                    avatarTipo = selectedAvatar,
+                    eduCoins = 250 // TODO: Obtener del backend
                 )
             }
 
@@ -275,7 +291,9 @@ fun WelcomeCard(
     nombreUsuario: String,
     nivel: Int,
     puntosTotales: Int,
-    posicionRanking: Int?
+    posicionRanking: Int?,
+    avatarTipo: AvatarTipo,
+    eduCoins: Int
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -287,75 +305,124 @@ fun WelcomeCard(
                 .fillMaxWidth()
                 .background(
                     brush = Brush.horizontalGradient(
-                        colors = listOf(EduQuestBlue, EduQuestPurple)
+                        colors = listOf(EduQuestDarkBlue, EduQuestLightBlue)
                     )
                 )
-                .padding(20.dp)
+                .padding(16.dp)
         ) {
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Avatar del personaje estilo Habitica - MÁS GRANDE
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.2f))
+                        .border(3.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
+                    Image(
+                        painter = painterResource(id = avatarTipo.drawableRes),
+                        contentDescription = avatarTipo.displayName,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(4.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                // Info del usuario
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Nombre
                     Text(
                         text = "¡Hola, ${nombreUsuario.split(" ").firstOrNull() ?: "Usuario"}!",
-                        fontSize = 24.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    Text("👋", fontSize = 24.sp)
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    // Nivel y descripción
+                    Text(
+                        text = "Estás en el nivel $nivel. ¡Sigue así para alcanzar el nivel ${nivel + 1}!",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
 
-                Text(
-                    text = "Estás en el nivel $nivel. ¡Sigue así para alcanzar el nivel ${nivel + 1}!",
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                    // Stats: XP y Puesto
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "XP",
-                            tint = Color(0xFFFFD700),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "$puntosTotales XP",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    posicionRanking?.let { posicion ->
+                        // XP con imagen
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = "Ranking",
-                                tint = Color(0xFFFFD700),
-                                modifier = Modifier.size(20.dp)
+                            Image(
+                                painter = painterResource(id = R.drawable.exp),
+                                contentDescription = "XP",
+                                modifier = Modifier.size(20.dp),
+                                contentScale = ContentScale.Fit
                             )
                             Text(
-                                text = "Puesto #$posicion",
-                                fontSize = 16.sp,
+                                text = "$puntosTotales XP",
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                         }
+
+                        // Ranking con imagen
+                        posicionRanking?.let { posicion ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ranking),
+                                    contentDescription = "Ranking",
+                                    modifier = Modifier.size(20.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Text(
+                                    text = "Puesto #$posicion",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+
+                    // EduCoins con imagen
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .background(
+                                color = Color.White.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.coin1),
+                            contentDescription = "EduCoins",
+                            modifier = Modifier.size(20.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                        Text(
+                            text = "$eduCoins",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
                 }
             }

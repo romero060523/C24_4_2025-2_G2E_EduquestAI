@@ -19,13 +19,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.eduquestia.frontend_mobile.data.local.TokenManager
 import com.eduquestia.frontend_mobile.data.model.MisionEstudiante
+import com.eduquestia.frontend_mobile.data.repository.AuthRepository
 import com.eduquestia.frontend_mobile.data.repository.MisionRepository
+import com.eduquestia.frontend_mobile.ui.components.AppDrawer
 import com.eduquestia.frontend_mobile.ui.components.BottomNavBar
 import com.eduquestia.frontend_mobile.ui.navigation.Screen
 import com.eduquestia.frontend_mobile.ui.theme.*
+import com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +41,13 @@ fun MissionsScreen(
     val tokenManager = remember { TokenManager(context) }
     val misionRepository = remember { MisionRepository() }
     val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    val authRepository = remember { AuthRepository(tokenManager = tokenManager) }
+    val authViewModel: AuthViewModel = viewModel { AuthViewModel(authRepository = authRepository) }
+
+    var userName by remember { mutableStateOf("Usuario") }
+    var userEmail by remember { mutableStateOf("") }
 
     var misiones by remember { mutableStateOf<List<MisionEstudiante>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -45,6 +56,8 @@ fun MissionsScreen(
 
     // Cargar misiones al iniciar
     LaunchedEffect(Unit) {
+        userName = tokenManager.getUserNombre() ?: "Usuario"
+        userEmail = tokenManager.getUserEmail() ?: ""
         scope.launch {
             isLoading = true
             error = null
@@ -72,52 +85,87 @@ fun MissionsScreen(
     }
     val xpSemana = misiones.sumOf { it.puntosObtenidos ?: 0 }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "EduQuest Logo",
-                            tint = EduQuestBlue
-                        )
-                        Text(
-                            text = "EduQuest",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
+    val currentRoute = Screen.Missions.route
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                currentRoute = currentRoute,
+                userName = userName,
+                userEmail = userEmail,
+                onMenuItemClick = { item ->
+                    scope.launch { drawerState.close() }
+                    when {
+                        item.isLogout -> {
+                            authViewModel.logout()
+                            navController?.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Home.route) { inclusive = true }
+                            }
+                        }
+                        item.route.isNotEmpty() -> {
+                            navController?.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* TODO: Notificaciones */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notificaciones",
-                            tint = TextPrimary
-                        )
-                    }
-                    IconButton(onClick = { /* TODO: Menú */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menú",
-                            tint = TextPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite
-                )
+                onClose = { scope.launch { drawerState.close() } }
             )
-        },
-        containerColor = BackgroundGray,
-        bottomBar = {
-            navController?.let { BottomNavBar(it) }
         }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menú",
+                                tint = TextPrimary
+                            )
+                        }
+                    },
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "EduQuest Logo",
+                                tint = EduQuestBlue
+                            )
+                            Text(
+                                text = "EduQuest",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { /* TODO: Notificaciones */ }) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notificaciones",
+                                tint = TextPrimary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = BackgroundWhite
+                    )
+                )
+            },
+            containerColor = BackgroundGray,
+            bottomBar = {
+                navController?.let { BottomNavBar(it) }
+            }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -262,6 +310,7 @@ fun MissionsScreen(
                     }
                 )
             }
+        }
         }
     }
 }

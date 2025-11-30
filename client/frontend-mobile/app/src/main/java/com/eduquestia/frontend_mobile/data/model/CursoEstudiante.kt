@@ -29,3 +29,4 @@ data class CursoEstudiante(
     val totalEstudiantes: Int = 0
 )
 
+

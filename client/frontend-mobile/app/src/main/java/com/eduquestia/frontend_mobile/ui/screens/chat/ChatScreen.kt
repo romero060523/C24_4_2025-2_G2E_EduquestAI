@@ -19,33 +19,39 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.eduquestia.frontend_mobile.data.local.TokenManager
-import com.eduquestia.frontend_mobile.data.model.ChatResponse
+import com.eduquestia.frontend_mobile.data.repository.AuthRepository
 import com.eduquestia.frontend_mobile.data.repository.ChatRepository
+import com.eduquestia.frontend_mobile.ui.components.AppDrawer
 import com.eduquestia.frontend_mobile.ui.components.BottomNavBar
+import com.eduquestia.frontend_mobile.ui.navigation.Screen
 import com.eduquestia.frontend_mobile.ui.theme.*
-import kotlinx.coroutines.launch
+import com.eduquestia.frontend_mobile.ui.viewmodel.AuthViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.launch
 
 data class ChatMessage(
-    val id: String = UUID.randomUUID().toString(),
-    val contenido: String,
-    val esUsuario: Boolean,
-    val timestamp: Long = System.currentTimeMillis()
+        val id: String = UUID.randomUUID().toString(),
+        val contenido: String,
+        val esUsuario: Boolean,
+        val timestamp: Long = System.currentTimeMillis()
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(
-    navController: NavController? = null
-) {
+fun ChatScreen(navController: NavController? = null) {
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
     val chatRepository = remember { ChatRepository() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    val authRepository = remember { AuthRepository(tokenManager = tokenManager) }
+    val authViewModel: AuthViewModel = viewModel { AuthViewModel(authRepository = authRepository) }
 
     var mensajes by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
     var mensajeActual by remember { mutableStateOf("") }
@@ -54,21 +60,25 @@ fun ChatScreen(
     var userId by remember { mutableStateOf<String?>(null) }
     var userRol by remember { mutableStateOf<String?>(null) }
     var userName by remember { mutableStateOf("Usuario") }
+    var userEmail by remember { mutableStateOf("") }
 
     // Obtener datos del usuario al iniciar
     LaunchedEffect(Unit) {
         userId = tokenManager.getUserId()
         userRol = tokenManager.getUserRol()
         userName = tokenManager.getUserNombre() ?: "Usuario"
+        userEmail = tokenManager.getUserEmail() ?: ""
 
         // Agregar mensaje de bienvenida de la IA
         val nombreCorto = userName.split(" ").firstOrNull() ?: "Usuario"
-        mensajes = listOf(
-            ChatMessage(
-                contenido = "¡Hola $nombreCorto! 👋 Soy tu asistente educativo IA. ¿En qué puedo ayudarte hoy?",
-                esUsuario = false
-            )
-        )
+        mensajes =
+                listOf(
+                        ChatMessage(
+                                contenido =
+                                        "¡Hola $nombreCorto! Soy tu asistente educativo IA. ¿En qué puedo ayudarte hoy?",
+                                esUsuario = false
+                        )
+                )
     }
 
     // Scroll al último mensaje cuando se agrega uno nuevo
@@ -85,264 +95,281 @@ fun ChatScreen(
         mensajeActual = ""
 
         // Agregar mensaje del usuario
-        mensajes = mensajes + ChatMessage(
-            contenido = mensaje,
-            esUsuario = true
-        )
+        mensajes = mensajes + ChatMessage(contenido = mensaje, esUsuario = true)
 
         // Enviar al backend
         scope.launch {
             isLoading = true
             try {
-                val result = chatRepository.enviarMensaje(
-                    mensaje = mensaje,
-                    usuarioId = userId ?: "",
-                    rolUsuario = userRol ?: "estudiante",
-                    conversacionId = conversacionId
-                )
+                val result =
+                        chatRepository.enviarMensaje(
+                                mensaje = mensaje,
+                                usuarioId = userId ?: "",
+                                rolUsuario = userRol ?: "estudiante",
+                                conversacionId = conversacionId
+                        )
 
-                result.onSuccess { response ->
-                    conversacionId = response.conversacionId
-                    mensajes = mensajes + ChatMessage(
-                        contenido = response.respuesta,
-                        esUsuario = false
-                    )
-                }.onFailure { error ->
-                    mensajes = mensajes + ChatMessage(
-                        contenido = "Lo siento, ocurrió un error al procesar tu mensaje. Por favor intenta de nuevo.",
-                        esUsuario = false
-                    )
-                }
+                result
+                        .onSuccess { response ->
+                            conversacionId = response.conversacionId
+                            mensajes =
+                                    mensajes +
+                                            ChatMessage(
+                                                    contenido = response.respuesta,
+                                                    esUsuario = false
+                                            )
+                        }
+                        .onFailure { error ->
+                            mensajes =
+                                    mensajes +
+                                            ChatMessage(
+                                                    contenido =
+                                                            "Lo siento, ocurrió un error al procesar tu mensaje. Por favor intenta de nuevo.",
+                                                    esUsuario = false
+                                            )
+                        }
             } catch (e: Exception) {
-                mensajes = mensajes + ChatMessage(
-                    contenido = "Error de conexión. Verifica tu conexión a internet e intenta de nuevo.",
-                    esUsuario = false
-                )
+                mensajes =
+                        mensajes +
+                                ChatMessage(
+                                        contenido =
+                                                "Error de conexión. Verifica tu conexión a internet e intenta de nuevo.",
+                                        esUsuario = false
+                                )
             } finally {
                 isLoading = false
             }
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "EduQuest Logo",
-                            tint = EduQuestBlue
-                        )
-                        Text(
-                            text = "EduQuest",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO: Notificaciones */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notificaciones",
-                            tint = TextPrimary
-                        )
-                    }
-                    IconButton(onClick = { /* TODO: Menú */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menú",
-                            tint = TextPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite
-                )
-            )
-        },
-        containerColor = BackgroundGray,
-        bottomBar = {
-            navController?.let { BottomNavBar(it) }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Header del Chat
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = BackgroundWhite),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Chat IA",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Text(
-                        text = "Tu asistente educativo personalizado",
-                        fontSize = 14.sp,
-                        color = TextSecondary
-                    )
+    val currentRoute = Screen.Chat.route
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Avatar del asistente
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(EduQuestBlue),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SmartToy,
-                                contentDescription = "IA",
-                                tint = Color.White,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "Asistente IA",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(AccentGreen)
-                                )
-                                Text(
-                                    text = "En línea",
-                                    fontSize = 12.sp,
-                                    color = AccentGreen
-                                )
+    ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                AppDrawer(
+                        currentRoute = currentRoute,
+                        userName = userName,
+                        userEmail = userEmail,
+                        onMenuItemClick = { item ->
+                            scope.launch { drawerState.close() }
+                            when {
+                                item.isLogout -> {
+                                    authViewModel.logout()
+                                    navController?.navigate(Screen.Login.route) {
+                                        popUpTo(Screen.Home.route) { inclusive = true }
+                                    }
+                                }
+                                item.route.isNotEmpty() -> {
+                                    navController?.navigate(item.route) {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
                             }
-                        }
-                    }
-                }
+                        },
+                        onClose = { scope.launch { drawerState.close() } }
+                )
             }
-
-            // Lista de mensajes
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(mensajes) { mensaje ->
-                    ChatBubble(mensaje = mensaje)
-                }
-
-                // Indicador de carga
-                if (isLoading) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            horizontalArrangement = Arrangement.Start
-                        ) {
-    Box(
-        modifier = Modifier
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(BackgroundWhite)
-                                    .padding(16.dp)
-                            ) {
+    ) {
+        Scaffold(
+                topBar = {
+                    TopAppBar(
+                            navigationIcon = {
+                                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                    Icon(
+                                            imageVector = Icons.Default.Menu,
+                                            contentDescription = "Menú",
+                                            tint = TextPrimary
+                                    )
+                                }
+                            },
+                            title = {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        color = EduQuestBlue,
-                                        strokeWidth = 2.dp
+                                    Icon(
+                                            imageVector = Icons.Default.AccountCircle,
+                                            contentDescription = "EduQuest Logo",
+                                            tint = EduQuestBlue
                                     )
                                     Text(
-                                        text = "Escribiendo...",
-                                        fontSize = 14.sp,
-                                        color = TextSecondary
+                                            text = "EduQuest",
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextPrimary
                                     )
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { /* TODO: Notificaciones */}) {
+                                    Icon(
+                                            imageVector = Icons.Default.Notifications,
+                                            contentDescription = "Notificaciones",
+                                            tint = TextPrimary
+                                    )
+                                }
+                            },
+                            colors =
+                                    TopAppBarDefaults.topAppBarColors(
+                                            containerColor = BackgroundWhite
+                                    )
+                    )
+                },
+                containerColor = BackgroundGray,
+                bottomBar = { navController?.let { BottomNavBar(it) } }
+        ) { paddingValues ->
+            Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                // Header del Chat
+                Card(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = BackgroundWhite),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                                text = "Chat IA",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                        )
+                        Text(
+                                text = "Tu asistente educativo personalizado",
+                                fontSize = 14.sp,
+                                color = TextSecondary
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Avatar del asistente
+                        Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                    modifier =
+                                            Modifier.size(48.dp)
+                                                    .clip(CircleShape)
+                                                    .background(EduQuestBlue),
+                                    contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                        imageVector = Icons.Default.SmartToy,
+                                        contentDescription = "IA",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(28.dp)
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                        text = "Asistente IA",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                )
+                                Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(
+                                            modifier =
+                                                    Modifier.size(8.dp)
+                                                            .clip(CircleShape)
+                                                            .background(AccentGreen)
+                                    )
+                                    Text(text = "En línea", fontSize = 12.sp, color = AccentGreen)
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Input de mensaje
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-            .padding(16.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = BackgroundWhite),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Lista de mensajes
+                LazyColumn(
+                        state = listState,
+                        modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = mensajeActual,
-                        onValueChange = { mensajeActual = it },
-                        placeholder = { Text("Escribe tu pregunta...") },
-                        modifier = Modifier.weight(1f),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent
-                        ),
-                        maxLines = 3
-                    )
+                    items(mensajes) { mensaje -> ChatBubble(mensaje = mensaje) }
 
-                    FilledIconButton(
-                        onClick = { enviarMensaje() },
-                        enabled = mensajeActual.isNotBlank() && !isLoading,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = EduQuestBlue,
-                            contentColor = Color.White,
-                            disabledContainerColor = TextLight,
-                            disabledContentColor = Color.White
-                        )
+                    // Indicador de carga
+                    if (isLoading) {
+                        item {
+                            Row(
+                                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                    horizontalArrangement = Arrangement.Start
+                            ) {
+                                Box(
+                                        modifier =
+                                                Modifier.clip(RoundedCornerShape(16.dp))
+                                                        .background(BackgroundWhite)
+                                                        .padding(16.dp)
+                                ) {
+                                    Row(
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                color = EduQuestBlue,
+                                                strokeWidth = 2.dp
+                                        )
+                                        Text(
+                                                text = "Escribiendo...",
+                                                fontSize = 14.sp,
+                                                color = TextSecondary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Input de mensaje
+                Card(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = BackgroundWhite),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                            modifier = Modifier.fillMaxWidth().padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = "Enviar"
+                        OutlinedTextField(
+                                value = mensajeActual,
+                                onValueChange = { mensajeActual = it },
+                                placeholder = { Text("Escribe tu pregunta...") },
+                                modifier = Modifier.weight(1f),
+                                colors =
+                                        OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = Color.Transparent,
+                                                unfocusedBorderColor = Color.Transparent,
+                                                focusedContainerColor = Color.Transparent,
+                                                unfocusedContainerColor = Color.Transparent
+                                        ),
+                                maxLines = 3
                         )
+
+                        FilledIconButton(
+                                onClick = { enviarMensaje() },
+                                enabled = mensajeActual.isNotBlank() && !isLoading,
+                                colors =
+                                        IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = EduQuestBlue,
+                                                contentColor = Color.White,
+                                                disabledContainerColor = TextLight,
+                                                disabledContentColor = Color.White
+                                        )
+                        ) { Icon(imageVector = Icons.Default.Send, contentDescription = "Enviar") }
                     }
                 }
             }
@@ -355,39 +382,32 @@ fun ChatBubble(mensaje: ChatMessage) {
     val alignment = if (mensaje.esUsuario) Alignment.End else Alignment.Start
     val bubbleColor = if (mensaje.esUsuario) EduQuestBlue else BackgroundWhite
     val textColor = if (mensaje.esUsuario) Color.White else TextPrimary
-    val bubbleShape = if (mensaje.esUsuario) {
-        RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
-    } else {
-        RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
-    }
+    val bubbleShape =
+            if (mensaje.esUsuario) {
+                RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
+            } else {
+                RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
+            }
 
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     val timeString = timeFormat.format(Date(mensaje.timestamp))
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = alignment
-    ) {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = alignment) {
         Box(
-            modifier = Modifier
-                .widthIn(max = 300.dp)
-                .clip(bubbleShape)
-                .background(bubbleColor)
-                .padding(12.dp)
+                modifier =
+                        Modifier.widthIn(max = 300.dp)
+                                .clip(bubbleShape)
+                                .background(bubbleColor)
+                                .padding(12.dp)
         ) {
-            Text(
-                text = mensaje.contenido,
-                fontSize = 14.sp,
-                color = textColor,
-                lineHeight = 20.sp
-            )
+            Text(text = mensaje.contenido, fontSize = 14.sp, color = textColor, lineHeight = 20.sp)
         }
 
         Text(
-            text = timeString,
-            fontSize = 10.sp,
-            color = TextLight,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                text = timeString,
+                fontSize = 10.sp,
+                color = TextLight,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
         )
     }
 }

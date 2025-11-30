@@ -28,18 +28,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             FrontendmobileTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
                 ) {
                     val tokenManager = remember { TokenManager(this@MainActivity) }
 
                     // Configurar el token provider para RetrofitClient
                     LaunchedEffect(Unit) {
-                        RetrofitClient.setTokenProvider {
-                            runBlocking {
-                                tokenManager.getToken()
-                            }
-                        }
+                        RetrofitClient.setTokenProvider { runBlocking { tokenManager.getToken() } }
                     }
 
                     val authRepository = remember { AuthRepository(tokenManager = tokenManager) }
@@ -54,19 +50,17 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         val isLoggedIn = tokenManager.isLoggedIn()
-                        startDestination = if (isLoggedIn) {
-                            Screen.Home.route
-                        } else {
-                            Screen.Login.route
-                        }
+                        startDestination =
+                                if (isLoggedIn) {
+                                    Screen.Home.route
+                                } else {
+                                    Screen.Login.route
+                                }
                     }
 
                     // Mostrar NavGraph solo cuando tengamos el destino inicial
                     startDestination?.let { destination ->
-                        NavGraph(
-                            navController = navController,
-                            startDestination = destination
-                        )
+                        NavGraph(navController = navController, startDestination = destination)
                     }
                 }
             }

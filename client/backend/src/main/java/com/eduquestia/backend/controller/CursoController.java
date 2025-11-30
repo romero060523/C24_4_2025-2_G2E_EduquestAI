@@ -1,30 +1,35 @@
 package com.eduquestia.backend.controller;
 
-import com.eduquestia.backend.dto.response.ApiResponse;
-import com.eduquestia.backend.dto.response.CursoEstudianteResponse;
-import com.eduquestia.backend.entity.Curso;
-import com.eduquestia.backend.entity.CursoProfesor;
-import com.eduquestia.backend.entity.Inscripcion;
-import com.eduquestia.backend.entity.Mision;
-import com.eduquestia.backend.entity.ProgresoMision;
-import com.eduquestia.backend.repository.CursoProfesorRepository;
-import com.eduquestia.backend.repository.CursoRepository;
-import com.eduquestia.backend.repository.InscripcionRepository;
-import com.eduquestia.backend.repository.MisionRepository;
-import com.eduquestia.backend.repository.ProgresoMisionRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.lang.NonNull;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.eduquestia.backend.dto.response.ApiResponse;
+import com.eduquestia.backend.dto.response.CursoEstudianteResponse;
+import com.eduquestia.backend.entity.Curso;
+import com.eduquestia.backend.entity.CursoProfesor;
+import com.eduquestia.backend.entity.Inscripcion;
+import com.eduquestia.backend.entity.Mision;
+import com.eduquestia.backend.repository.CursoProfesorRepository;
+import com.eduquestia.backend.repository.CursoRepository;
+import com.eduquestia.backend.repository.InscripcionRepository;
+import com.eduquestia.backend.repository.MisionRepository;
+import com.eduquestia.backend.repository.ProgresoMisionRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Controlador de Curso - SOLO CONSULTAS
@@ -48,76 +53,117 @@ public class CursoController {
      * Lista los cursos de un estudiante con información completa
      */
     @GetMapping("/por-estudiante/{estudianteId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<CursoEstudianteResponse>>> listarCursosPorEstudiante(
             @PathVariable UUID estudianteId) {
 
         log.info("GET /cursos/por-estudiante/{} - Listar cursos del estudiante", estudianteId);
 
-        List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteIdWithCurso(estudianteId);
-        List<CursoEstudianteResponse> cursosResponse = new ArrayList<>();
+        try {
+            List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteIdWithCurso(estudianteId);
+            log.info("Inscripciones encontradas: {}", inscripciones.size());
 
-        for (Inscripcion inscripcion : inscripciones) {
-            Curso curso = inscripcion.getCurso();
-            if (curso == null || !curso.getActivo()) continue;
+            List<CursoEstudianteResponse> cursosResponse = new ArrayList<>();
 
-            // Obtener profesor titular
-            String profesorNombre = "Sin asignar";
-            String profesorEmail = "";
-            List<CursoProfesor> profesores = cursoProfesorRepository.findByCursoId(curso.getId());
-            if (!profesores.isEmpty()) {
-                // Buscar el titular primero
-                CursoProfesor titular = profesores.stream()
-                        .filter(cp -> "titular".equalsIgnoreCase(cp.getRolProfesor()))
-                        .findFirst()
-                        .orElse(profesores.get(0));
-
-                if (titular.getProfesor() != null) {
-                    profesorNombre = titular.getProfesor().getNombreCompleto();
-                    profesorEmail = titular.getProfesor().getEmail();
+            for (Inscripcion inscripcion : inscripciones) {
+                Curso curso = inscripcion.getCurso();
+                if (curso == null) {
+                    log.warn("Inscripción {} tiene curso null", inscripcion.getId());
+                    continue;
                 }
+                if (curso.getActivo() == null || !curso.getActivo()) {
+                    log.info("Curso {} no está activo, saltando", curso.getId());
+                    continue;
+                }
+
+                // Obtener profesor titular (con manejo seguro de null)
+                String profesorNombre = "Sin asignar";
+                String profesorEmail = "";
+                try {
+                    List<CursoProfesor> profesores = cursoProfesorRepository.findByCursoId(curso.getId());
+                    if (profesores != null && !profesores.isEmpty()) {
+                        CursoProfesor titular = profesores.stream()
+                                .filter(cp -> cp != null && "titular".equalsIgnoreCase(cp.getRolProfesor()))
+                                .findFirst()
+                                .orElse(profesores.get(0));
+
+                        if (titular != null && titular.getProfesor() != null) {
+                            profesorNombre = titular.getProfesor().getNombreCompleto() != null
+                                    ? titular.getProfesor().getNombreCompleto()
+                                    : "Sin nombre";
+                            profesorEmail = titular.getProfesor().getEmail() != null
+                                    ? titular.getProfesor().getEmail()
+                                    : "";
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Error al obtener profesor para curso {}: {}", curso.getId(), e.getMessage());
+                }
+
+                // Contar misiones del curso (con manejo seguro)
+                int totalMisiones = 0;
+                int misionesCompletadas = 0;
+                try {
+                    List<Mision> misionesDelCurso = misionRepository.findByCursoId(curso.getId());
+                    if (misionesDelCurso != null) {
+                        totalMisiones = misionesDelCurso.size();
+
+                        // Contar misiones completadas por el estudiante
+                        for (Mision mision : misionesDelCurso) {
+                            if (mision == null)
+                                continue;
+                            var progresoOpt = progresoMisionRepository
+                                    .findByMisionIdAndEstudianteId(mision.getId(), estudianteId);
+                            if (progresoOpt.isPresent() && progresoOpt.get().getCompletada() != null
+                                    && progresoOpt.get().getCompletada()) {
+                                misionesCompletadas++;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Error al contar misiones para curso {}: {}", curso.getId(), e.getMessage());
+                }
+
+                // Calcular progreso
+                int progreso = totalMisiones > 0 ? (misionesCompletadas * 100) / totalMisiones : 0;
+
+                // Contar estudiantes inscritos (con manejo seguro)
+                int totalEstudiantes = 0;
+                try {
+                    List<Inscripcion> inscripcionesActivas = inscripcionRepository
+                            .findInscripcionesActivasByCursoId(curso.getId());
+                    totalEstudiantes = inscripcionesActivas != null ? inscripcionesActivas.size() : 0;
+                } catch (Exception e) {
+                    log.warn("Error al contar estudiantes para curso {}: {}", curso.getId(), e.getMessage());
+                }
+
+                CursoEstudianteResponse cursoResponse = CursoEstudianteResponse.builder()
+                        .id(curso.getId())
+                        .codigoCurso(curso.getCodigoCurso() != null ? curso.getCodigoCurso() : "")
+                        .nombre(curso.getNombre() != null ? curso.getNombre() : "Sin nombre")
+                        .descripcion(curso.getDescripcion())
+                        .imagenPortada(curso.getImagenPortada())
+                        .fechaInicio(curso.getFechaInicio() != null ? curso.getFechaInicio().toString() : null)
+                        .fechaFin(curso.getFechaFin() != null ? curso.getFechaFin().toString() : null)
+                        .activo(curso.getActivo())
+                        .profesorNombre(profesorNombre)
+                        .profesorEmail(profesorEmail)
+                        .progreso(progreso)
+                        .misionesCompletadas(misionesCompletadas)
+                        .totalMisiones(totalMisiones)
+                        .totalEstudiantes(totalEstudiantes)
+                        .build();
+
+                cursosResponse.add(cursoResponse);
             }
 
-            // Contar misiones del curso
-            List<Mision> misionesDelCurso = misionRepository.findByCursoId(curso.getId());
-            int totalMisiones = misionesDelCurso.size();
+            log.info("Retornando {} cursos para estudiante {}", cursosResponse.size(), estudianteId);
+            return ResponseEntity.ok(ApiResponse.success(cursosResponse, "Cursos obtenidos exitosamente"));
 
-            // Contar misiones completadas por el estudiante
-            int misionesCompletadas = 0;
-            for (Mision mision : misionesDelCurso) {
-                var progresoOpt = progresoMisionRepository
-                        .findByMisionIdAndEstudianteId(mision.getId(), estudianteId);
-                if (progresoOpt.isPresent() && progresoOpt.get().getCompletada() != null && progresoOpt.get().getCompletada()) {
-                    misionesCompletadas++;
-                }
-            }
-
-            // Calcular progreso
-            int progreso = totalMisiones > 0 ? (misionesCompletadas * 100) / totalMisiones : 0;
-
-            // Contar estudiantes inscritos
-            int totalEstudiantes = inscripcionRepository.findInscripcionesActivasByCursoId(curso.getId()).size();
-
-            CursoEstudianteResponse cursoResponse = CursoEstudianteResponse.builder()
-                    .id(curso.getId())
-                    .codigoCurso(curso.getCodigoCurso())
-                    .nombre(curso.getNombre())
-                    .descripcion(curso.getDescripcion())
-                    .imagenPortada(curso.getImagenPortada())
-                    .fechaInicio(curso.getFechaInicio() != null ? curso.getFechaInicio().toString() : null)
-                    .fechaFin(curso.getFechaFin() != null ? curso.getFechaFin().toString() : null)
-                    .activo(curso.getActivo())
-                    .profesorNombre(profesorNombre)
-                    .profesorEmail(profesorEmail)
-                    .progreso(progreso)
-                    .misionesCompletadas(misionesCompletadas)
-                    .totalMisiones(totalMisiones)
-                    .totalEstudiantes(totalEstudiantes)
-                    .build();
-
-            cursosResponse.add(cursoResponse);
+        } catch (Exception e) {
+            log.error("Error al listar cursos para estudiante {}: {}", estudianteId, e.getMessage(), e);
+            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "No se encontraron cursos"));
         }
-
-        return ResponseEntity.ok(ApiResponse.success(cursosResponse, "Cursos obtenidos exitosamente"));
     }
 
     /**
@@ -152,7 +198,8 @@ public class CursoController {
 
     /**
      * Lista los estudiantes inscritos en un curso
-     * IMPORTANTE: Este endpoint debe ir ANTES de /{id} para evitar conflictos de rutas
+     * IMPORTANTE: Este endpoint debe ir ANTES de /{id} para evitar conflictos de
+     * rutas
      */
     @GetMapping("/{cursoId}/estudiantes")
     @Transactional(readOnly = true)
@@ -184,19 +231,19 @@ public class CursoController {
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> obtenerCursoPorId(@PathVariable @NonNull UUID id) {
         return cursoRepository.findById(id)
-            .map(curso -> {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("data", curso);
-                response.put("message", "Curso encontrado");
-                return ResponseEntity.ok(response);
-            })
-            .orElseGet(() -> {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "Curso no encontrado");
-                return ResponseEntity.notFound().build();
-            });
+                .map(curso -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("data", curso);
+                    response.put("message", "Curso encontrado");
+                    return ResponseEntity.ok(response);
+                })
+                .orElseGet(() -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", false);
+                    response.put("message", "Curso no encontrado");
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     /**
@@ -205,18 +252,18 @@ public class CursoController {
     @GetMapping("/codigo/{codigoCurso}")
     public ResponseEntity<Map<String, Object>> obtenerCursoPorCodigo(@PathVariable("codigoCurso") String codigoCurso) {
         return cursoRepository.findByCodigoCurso(codigoCurso)
-            .map(curso -> {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("data", curso);
-                response.put("message", "Curso encontrado");
-                return ResponseEntity.ok(response);
-            })
-            .orElseGet(() -> {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "Curso no encontrado");
-                return ResponseEntity.notFound().build();
-            });
+                .map(curso -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("data", curso);
+                    response.put("message", "Curso encontrado");
+                    return ResponseEntity.ok(response);
+                })
+                .orElseGet(() -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", false);
+                    response.put("message", "Curso no encontrado");
+                    return ResponseEntity.notFound().build();
+                });
     }
 }

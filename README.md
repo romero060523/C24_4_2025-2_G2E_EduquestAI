@@ -21,7 +21,7 @@ EduquestAI/
 │   ├── backend/          # Spring Boot (Java) - API REST
 │   ├── frontend-web/     # React + Vite + Tailwind CSS
 │   │   └── my-project/
-│   └── frontend-mobile/  # (Pendiente)
+│   └── frontend-mobile/   # Android (Kotlin + Jetpack Compose)
 └── docker-compose.yml    # Orquestación de servicios
 ```
 
@@ -67,6 +67,17 @@ EduquestAI/
 - **Build Tool**: Vite 7.1.7
 - **Lenguaje**: TypeScript 5.9.3
 - **Estilos**: Tailwind CSS 4.1.16
+
+### Client Frontend Mobile
+
+- **Framework**: Android (Kotlin)
+- **UI**: Jetpack Compose
+- **Arquitectura**: MVVM + Clean Architecture
+- **Networking**: Retrofit 2.11.0 + OkHttp 4.12.0
+- **Serialization**: Kotlinx Serialization 1.7.3
+- **Storage**: DataStore 1.1.1 (tokens)
+- **Firebase**: Storage (subida de archivos)
+- **Material**: Material 3
 
 ### DevOps
 
@@ -212,6 +223,26 @@ npm install
 npm run dev
 ```
 
+#### Client Frontend Mobile
+
+```bash
+cd client/frontend-mobile
+./gradlew assembleDebug  # Compilar
+./gradlew installDebug   # Instalar en dispositivo/emulador
+```
+
+**Requisitos:**
+- Android Studio (Arctic Fox o superior)
+- JDK 21
+- Android SDK (API 34)
+- Dispositivo Android o Emulador
+
+**Configuración:**
+1. Abrir el proyecto en Android Studio
+2. Sincronizar Gradle
+3. Configurar dispositivo/emulador
+4. Ejecutar la app
+
 ## 🌐 Acceso a los Servicios
 
 | Servicio                | URL                   | Puerto |
@@ -220,6 +251,7 @@ npm run dev
 | **Admin Frontend**      | http://localhost:3000 | 3000   |
 | **Client Backend API**  | http://localhost:8080 | 8080   |
 | **Client Frontend Web** | http://localhost:3001 | 3001   |
+| **Client Frontend Mobile** | Android App | -      |
 | **PostgreSQL**          | localhost:5432        | 5432   |
 
 ## 📦 Comandos Docker Compose
@@ -368,6 +400,38 @@ docker exec -it eduquest-admin-backend python manage.py createsuperuser
 ```bash
 # Ver todas las tablas del schema
 docker exec -it eduquest-postgres psql -U postgres -d eduquest_db -c "SELECT tablename FROM pg_tables WHERE schemaname = 'grupo_03' ORDER BY tablename;"
+
+# Verificar que existen las tablas M2M
+docker exec -it eduquest-postgres psql -U postgres -d eduquest_db -c "SELECT tablename FROM pg_tables WHERE schemaname = 'grupo_03' AND tablename LIKE 'usuario_%';"
+
+# Deberías ver: usuario, usuario_groups, usuario_user_permissions
+```
+
+### Problemas de autenticación entre Django y Spring Boot
+
+**Síntoma**: Usuarios creados en Django no pueden hacer login en la aplicación cliente
+
+**Causa**: Incompatibilidad de formatos de hash de contraseñas
+
+**Solución**: El sistema usa un hasher personalizado (`SpringBootBCryptPasswordHasher`) que genera hashes BCrypt con revisión `$2a$` compatibles con jBCrypt de Spring Boot. Asegúrate de que:
+
+1. Las contraseñas se crean desde Django (panel de admin)
+2. El hash almacenado tiene el formato: `bcrypt_pure$$2a$12$...`
+3. Spring Boot puede verificar el hash correctamente
+
+## 📄 Licencia
+
+CICLO IV - TECSUP.
+
+## 👥 Equipo
+
+- Grupo: G2E
+- Ciclo: IV
+- Año: 2025-2
+
+---
+
+⭐ **Desarrollado por el equipo G2E** - TECSUP 2025
 
 # Verificar que existen las tablas M2M
 docker exec -it eduquest-postgres psql -U postgres -d eduquest_db -c "SELECT tablename FROM pg_tables WHERE schemaname = 'grupo_03' AND tablename LIKE 'usuario_%';"

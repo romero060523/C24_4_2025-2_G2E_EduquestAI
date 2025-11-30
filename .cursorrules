@@ -1,0 +1,133 @@
+# EduQuestAI - Reglas de Proyecto para Cursor
+
+## Contexto del Proyecto
+EduQuestAI es una plataforma educativa gamificada con:
+- **Admin Backend**: Django (Python) - Gestión de usuarios y cursos
+- **Client Backend**: Spring Boot (Java 21) - API REST principal
+- **Client Frontend Web**: React + TypeScript + Vite + Tailwind CSS
+- **Client Frontend Mobile**: Android (Kotlin) + Jetpack Compose
+- **Base de Datos**: PostgreSQL compartida entre ambos backends
+
+## Convenciones de Código
+
+### Kotlin/Android (Mobile)
+- Usar **Jetpack Compose** para UI
+- **MVVM** como patrón arquitectónico
+- **Material 3** para componentes UI
+- Nombres de archivos: PascalCase (ej: `HomeScreen.kt`)
+- Funciones Composable: PascalCase (ej: `@Composable fun HomeScreen()`)
+- Variables: camelCase
+- Usar `remember`, `LaunchedEffect`, `collectAsState` apropiadamente
+- Siempre agregar `contentDescription` a Icon/Image para accesibilidad
+
+### Java/Spring Boot (Backend)
+- **RESTful APIs** con Spring Boot 3.5.7
+- **Java 21** features (records, pattern matching, etc.)
+- **Spring Data JPA** para persistencia
+- Nombres de clases: PascalCase
+- Métodos: camelCase
+- DTOs: `*Request`, `*Response` (ej: `CrearMisionRequest`)
+- Servicios: `*Service` interface, `*ServiceImpl` implementación
+- Controllers: `*Controller` con `@RestController`
+
+### TypeScript/React (Frontend Web)
+- **React 19** con hooks
+- **TypeScript** estricto (no `any`)
+- **Tailwind CSS** para estilos
+- Componentes: PascalCase (ej: `HomeScreen.tsx`)
+- Hooks personalizados: `use*` (ej: `useAuth.ts`)
+- Types: PascalCase (ej: `Usuario`, `Mision`)
+- Props: interfaces con `interface ComponentProps`
+
+### Python/Django (Admin Backend)
+- **Django 5.2.6** con DRF
+- **Python 3.13.3**
+- Nombres: snake_case para funciones/variables, PascalCase para clases
+- Serializers: `*Serializer`
+- Views: `*ViewSet` o `*APIView`
+
+## Estructura de Carpetas
+
+### Mobile (`client/frontend-mobile/`)
+```
+app/src/main/java/com/eduquestia/frontend_mobile/
+├── ui/
+│   ├── screens/          # Pantallas principales
+│   ├── components/       # Componentes reutilizables
+│   ├── navigation/       # Navegación
+│   └── theme/            # Tema y colores
+├── data/
+│   ├── model/            # Data classes / DTOs
+│   ├── repository/       # Repositorios
+│   └── remote/           # API services
+├── domain/
+│   └── usecase/          # Casos de uso
+└── util/                 # Utilidades
+```
+
+### Backend (`client/backend/`)
+```
+src/main/java/com/eduquestia/backend/
+├── controller/           # REST Controllers
+├── service/              # Business logic
+│   └── impl/             # Implementaciones
+├── repository/           # Data access
+├── entity/               # JPA Entities
+├── dto/
+│   ├── request/          # Request DTOs
+│   └── response/         # Response DTOs
+└── config/               # Configuraciones
+```
+
+## Reglas Específicas
+
+### Colores y Tema (Mobile)
+- Usar colores del tema: `EduQuestBlue`, `EduQuestPurple`, `EduQuestDarkBlue`
+- No hardcodear colores, usar `MaterialTheme.colorScheme`
+- Texto: `TextPrimary`, `TextSecondary`, `TextLight`
+
+### API y Networking
+- Base URL: `http://localhost:8080/api/v1` (desarrollo)
+- Usar Retrofit (Android) o Axios (React)
+- Siempre manejar errores con try-catch
+- Mostrar estados: Loading, Success, Error
+
+### Base de Datos
+- **Esquema**: `grupo_03`
+- **Tabla usuarios**: `grupo_03.usuario` (gestionada por Django)
+- Ambos backends comparten la misma BD PostgreSQL
+- Orden de inicialización: Postgres → Admin Backend → Client Backend
+
+### Docker
+- Usar `docker-compose up -d --build` para desarrollo
+- Servicios: `postgres`, `admin-backend`, `client-backend`, `admin-frontend`, `client-frontend-web`
+
+## Buenas Prácticas
+
+1. **Siempre validar datos** antes de enviar a API
+2. **Manejar estados de carga** en todas las pantallas
+3. **Mensajes de error claros** para el usuario
+4. **Logging apropiado** en backend (no logs sensibles)
+5. **Comentarios en español** para código complejo
+6. **Nombres descriptivos** en español para UI, inglés para código
+7. **Testing**: Agregar tests cuando sea crítico
+8. **Seguridad**: Nunca hardcodear tokens/credenciales
+
+## Cuando Crear Nuevas Features
+
+1. **Mobile**: Crear Screen → ViewModel → Repository → API Service
+2. **Backend**: Crear Entity → Repository → Service → Controller → DTOs
+3. **Frontend Web**: Crear Page → Component → Hook → API Service
+
+## Notas Importantes
+
+- El proyecto usa **gamificación**: XP, niveles, misiones, recompensas, ranking
+- Hay dos roles: **Estudiante** y **Profesor**
+- El sistema tiene **alertas tempranas** para rendimiento estudiantil
+- Las **evaluaciones** son gamificadas (quizzes con puntos)
+- El **chat IA** es una feature importante pendiente
+
+
+
+
+

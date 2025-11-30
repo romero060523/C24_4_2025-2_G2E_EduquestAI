@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.eduquestia.frontend_mobile"
-    compileSdk = 36
+    compileSdk = 36  // Necesario para las librerías nuevas (solo para compilar)
 
     defaultConfig {
         applicationId = "com.eduquestia.frontend_mobile"
-        minSdk = 36
-        targetSdk = 36
+        minSdk = 24  // Android 7.0 - Compatible con tu teléfono (API 31)
+        targetSdk = 34  // Android 14
         versionCode = 1
         versionName = "1.0"
 

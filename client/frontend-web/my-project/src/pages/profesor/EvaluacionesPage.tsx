@@ -5,10 +5,16 @@ import RetroalimentacionModal from "../../components/profesor/RetroalimentacionM
 
 const EvaluacionesPage = () => {
   const [cursos, setCursos] = useState<Curso[]>([]);
-  const [evaluaciones, setEvaluaciones] = useState<EvaluacionGamificadaResponse[]>([]);
+  const [evaluaciones, setEvaluaciones] = useState<
+    EvaluacionGamificadaResponse[]
+  >([]);
   const [, setResultados] = useState<{ [key: string]: unknown }>({});
-  const [cursoSeleccionado, setCursoSeleccionado] = useState<string | null>(null);
-  const [evaluacionSeleccionada, setEvaluacionSeleccionada] = useState<string | null>(null);
+  const [cursoSeleccionado, setCursoSeleccionado] = useState<string | null>(
+    null
+  );
+  const [evaluacionSeleccionada, setEvaluacionSeleccionada] = useState<
+    string | null
+  >(null);
   const [isLoading, setLoading] = useState(false);
   const [errorMsg, setError] = useState<string | null>(null);
   const [retroalimentacionModal, setRetroalimentacionModal] = useState<{
@@ -43,7 +49,10 @@ const EvaluacionesPage = () => {
 
   const loadCursos = async () => {
     try {
-      const profesorId = localStorage.getItem("profesorId") || localStorage.getItem("userId") || "";
+      const profesorId =
+        localStorage.getItem("profesorId") ||
+        localStorage.getItem("userId") ||
+        "";
       if (profesorId) {
         const cursosData = await apiService.listarCursosPorProfesor(profesorId);
         setCursos(cursosData);
@@ -61,7 +70,9 @@ const EvaluacionesPage = () => {
     if (!cursoSeleccionado) return;
     try {
       setLoading(true);
-      const evaluacionesData = await apiService.listarEvaluacionesPorCurso(cursoSeleccionado);
+      const evaluacionesData = await apiService.listarEvaluacionesPorCurso(
+        cursoSeleccionado
+      );
       setEvaluaciones(evaluacionesData);
       if (evaluacionesData.length > 0 && !evaluacionSeleccionada) {
         setEvaluacionSeleccionada(evaluacionesData[0].id);
@@ -85,7 +96,8 @@ const EvaluacionesPage = () => {
       // Esto es una limitación que debería mejorarse en el futuro
       setResultados({});
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : "Error al cargar los resultados";
+      const errorMessage =
+        e instanceof Error ? e.message : "Error al cargar los resultados";
       setError(errorMessage);
       console.error("Error:", e);
     } finally {
@@ -93,9 +105,14 @@ const EvaluacionesPage = () => {
     }
   };
 
-  const handleAbrirRetroalimentacion = (estudianteId: string, estudianteNombre: string) => {
+  const handleAbrirRetroalimentacion = (
+    estudianteId: string,
+    estudianteNombre: string
+  ) => {
     if (!evaluacionSeleccionada) return;
-    const evaluacion = evaluaciones.find((e) => e.id === evaluacionSeleccionada);
+    const evaluacion = evaluaciones.find(
+      (e) => e.id === evaluacionSeleccionada
+    );
     if (!evaluacion) return;
 
     setRetroalimentacionModal({
@@ -122,9 +139,12 @@ const EvaluacionesPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Evaluaciones y Retroalimentación</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Evaluaciones y Retroalimentación
+          </h1>
           <p className="text-gray-600 mt-1">
-            Gestiona evaluaciones y genera retroalimentación automática para tus estudiantes
+            Gestiona evaluaciones y genera retroalimentación automática para tus
+            estudiantes
           </p>
         </div>
       </div>
@@ -181,18 +201,24 @@ const EvaluacionesPage = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">
-              {evaluaciones.find((e) => e.id === evaluacionSeleccionada)?.titulo}
+              {
+                evaluaciones.find((e) => e.id === evaluacionSeleccionada)
+                  ?.titulo
+              }
             </h2>
           </div>
           <p className="text-gray-600">
-            {evaluaciones.find((e) => e.id === evaluacionSeleccionada)?.descripcion || "Sin descripción"}
+            {evaluaciones.find((e) => e.id === evaluacionSeleccionada)
+              ?.descripcion || "Sin descripción"}
           </p>
           <div className="mt-4 text-sm text-gray-500">
             <p>
-              Para generar retroalimentación automática, selecciona un estudiante que haya completado esta evaluación.
+              Para generar retroalimentación automática, selecciona un
+              estudiante que haya completado esta evaluación.
             </p>
             <p className="mt-2">
-              <strong>Nota:</strong> Esta funcionalidad requiere que el estudiante haya completado al menos un intento de la evaluación.
+              <strong>Nota:</strong> Esta funcionalidad requiere que el
+              estudiante haya completado al menos un intento de la evaluación.
             </p>
           </div>
         </div>
@@ -201,7 +227,12 @@ const EvaluacionesPage = () => {
       {/* Modal de Retroalimentación */}
       <RetroalimentacionModal
         isOpen={retroalimentacionModal.isOpen}
-        onClose={() => setRetroalimentacionModal({ ...retroalimentacionModal, isOpen: false })}
+        onClose={() =>
+          setRetroalimentacionModal({
+            ...retroalimentacionModal,
+            isOpen: false,
+          })
+        }
         estudianteId={retroalimentacionModal.estudianteId}
         estudianteNombre={retroalimentacionModal.estudianteNombre}
         evaluacionId={retroalimentacionModal.evaluacionId}
@@ -212,4 +243,3 @@ const EvaluacionesPage = () => {
 };
 
 export default EvaluacionesPage;
-

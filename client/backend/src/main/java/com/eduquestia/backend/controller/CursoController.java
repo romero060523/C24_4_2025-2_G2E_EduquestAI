@@ -35,8 +35,8 @@ public class CursoController {
      * Lista los cursos de un estudiante basado en sus inscripciones
      */
     @GetMapping("/por-estudiante/{estudianteId}")
-    public ResponseEntity<List<Curso>> listarCursosPorEstudiante(@PathVariable UUID estudianteId) {
-        List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteId(estudianteId);
+    public ResponseEntity<List<Curso>> listarCursosPorEstudiante(@PathVariable("estudianteId") UUID estudianteId) {
+        List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteIdWithCurso(estudianteId);
         List<Curso> cursos = inscripciones.stream()
                 .map(Inscripcion::getCurso)
                 .filter(Curso::getActivo)

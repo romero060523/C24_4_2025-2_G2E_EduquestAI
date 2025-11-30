@@ -24,6 +24,9 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, UUID> 
 
     List<Inscripcion> findByEstudianteId(UUID estudianteId);
 
+    @Query("SELECT i FROM Inscripcion i JOIN FETCH i.curso WHERE i.estudiante.id = :estudianteId")
+    List<Inscripcion> findByEstudianteIdWithCurso(@Param("estudianteId") UUID estudianteId);
+
     Optional<Inscripcion> findByEstudianteIdAndCursoId(UUID estudianteId, UUID cursoId);
 
     @Query("SELECT i.estudiante.id FROM Inscripcion i WHERE i.curso.id = :cursoId")
